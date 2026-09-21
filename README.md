@@ -1,65 +1,78 @@
 # Robotgo
 
-<!--<img align="right" src="https://raw.githubusercontent.com/go-vgo/robotgo/master/logo.jpg">-->
-<!--[![Build Status](https://travis-ci.org/go-vgo/robotgo.svg)](https://travis-ci.org/go-vgo/robotgo)
-[![codecov](https://codecov.io/gh/go-vgo/robotgo/branch/master/graph/badge.svg)](https://codecov.io/gh/go-vgo/robotgo)-->
-<!--<a href="https://circleci.com/gh/go-vgo/robotgo/tree/dev"><img src="https://img.shields.io/circleci/project/go-vgo/robotgo/dev.svg" alt="Build Status"></a>-->
+<!-- <img align="right" src="https://raw.githubusercontent.com/go-vgo/robotgo/master/logo.jpg"> -->
+<!-- [![codecov](https://codecov.io/gh/go-vgo/robotgo/branch/master/graph/badge.svg)](https://codecov.io/gh/go-vgo/robotgo) -->
+
 [![Build Status](https://github.com/go-vgo/robotgo/workflows/Go/badge.svg)](https://github.com/go-vgo/robotgo/commits/master)
 [![CircleCI Status](https://circleci.com/gh/go-vgo/robotgo.svg?style=shield)](https://circleci.com/gh/go-vgo/robotgo)
-[![Build Status](https://travis-ci.org/go-vgo/robotgo.svg)](https://travis-ci.org/go-vgo/robotgo)
-![Appveyor](https://ci.appveyor.com/api/projects/status/github/go-vgo/robotgo?branch=master&svg=true)
 [![Go Report Card](https://goreportcard.com/badge/github.com/go-vgo/robotgo)](https://goreportcard.com/report/github.com/go-vgo/robotgo)
-[![GoDoc](https://godoc.org/github.com/go-vgo/robotgo?status.svg)](https://godoc.org/github.com/go-vgo/robotgo)
+[![GoDoc](https://pkg.go.dev/badge/github.com/go-vgo/robotgo?status.svg)](https://pkg.go.dev/github.com/go-vgo/robotgo?tab=doc)
 [![GitHub release](https://img.shields.io/github/release/go-vgo/robotgo.svg)](https://github.com/go-vgo/robotgo/releases/latest)
-[![Join the chat at https://gitter.im/go-vgo/robotgo](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/go-vgo/robotgo?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-<!-- [![Release](https://github-release-version.herokuapp.com/github/go-vgo/robotgo/release.svg?style=flat)](https://github.com/go-vgo/robotgo/releases/latest) -->
-<!-- <a href="https://github.com/go-vgo/robotgo/releases"><img src="https://img.shields.io/badge/%20version%20-%206.0.0%20-blue.svg?style=flat-square" alt="Releases"></a> -->
+<a href="https://discord.gg/npPb3NzE4A"><img src="https://img.shields.io/discord/1484658282777018551.svg?logo=discord&logoColor=white&label=Discord&color=5865F2" alt="Join the Discord chat at https://discord.gg/npPb3NzE4A"></a>
 
-> Golang Desktop Automation. Control the mouse, keyboard, bitmap and image, read the screen, process, Window Handle and global event listener.
+English | [简体中文](lang/README.zh.md) | [繁體中文](lang/README.zht.md) | [日本語](lang/README.ja.md) | [한국어](lang/README.ko.md) | [Français](lang/README.fr.md) | [Deutsch](lang/README.de.md) | [Español](lang/README.es.md) | [Русский](lang/README.ru.md) | [Português](lang/README.pt.md)
 
-RobotGo supports Mac, Windows, and Linux(X11); and robotgo supports arm64 and x86-amd64.
+> Golang Desktop Automation, auto test and AI Computer Use. <br>
+> Control the mouse, keyboard, read the screen, process, Window Handle, image and bitmap and global event listener.
 
-[Chinese Simplified](https://github.com/go-vgo/robotgo/blob/master/README_zh.md)
+RobotGo supports Mac, Windows, and Linux; and robotgo supports arm64 and x86-amd64.
+
+I build [Codg](https://github.com/vcaesar/codg) now, Easy code and work AI agent system: auto, asynchronous, concurrency, efficiently and High accuracy
+
+<p align="center">
+<a href="https://github.com/vcaesar/codg" rel="nofollow">
+<!-- <img width="800" alt="Codg Demo" src="https://github.com/vcaesar/codg/raw/main/demo/26-04.png" /> -->
+<img width="800" alt="Codg Demo" src="https://github.com/vcaesar/codg/raw/main/demo/26-04-1.png" />
+</a>
+</p>
+
+[RobotGo-Pro](https://github.com/vcaesar/robotgo-pro) get the JavaScript, Python, Lua and others version, tech supports, new features and newest robotgo version ("no open-source version now").
 
 ## Contents
+
 - [Docs](#docs)
 - [Binding](#binding)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Update](#update)
+- [Cgo-free Builds](#cgo-free-builds)
 - [Examples](#examples)
-- [Cross-Compiling](#crosscompiling)
+- [Type Conversion and keys](https://github.com/go-vgo/robotgo/blob/master/docs/keys.md)
+- [Cross-Compiling](https://github.com/go-vgo/robotgo/blob/master/docs/install.md#crosscompiling)
 - [Authors](#authors)
 - [Plans](#plans)
-- [Donate](#donate)
-- [Contributors](#contributors)
 - [License](#license)
 
 ## Docs
-  - [GoDoc](https://godoc.org/github.com/go-vgo/robotgo) <br>
-  
-  - [API Docs](https://github.com/go-vgo/robotgo/blob/master/docs/doc.md)  (Deprecated, no updated)
-  - [Chinese Docs](https://github.com/go-vgo/robotgo/blob/master/docs/doc_zh.md) (Deprecated, no updated)
+
+- [GoDoc](https://godoc.org/github.com/go-vgo/robotgo) <br>
+- [API Docs](https://github.com/go-vgo/robotgo/blob/master/docs/doc.md) (Deprecated, no updated)
 
 ## Binding:
-[ADB](https://github.com/vcaesar/adb), packaging android adb API.
 
-[Robotn](https://github.com/vcaesar/robotn), binding JavaScript and other, support more language.
+[ADB](https://github.com/vcaesar/adb), packaging android adb API.
 
 ## Requirements:
 
 Now, Please make sure `Golang, GCC` is installed correctly before installing RobotGo.
 
 ### ALL:
+
 ```
 Golang
 
 GCC
 ```
 
-#### For Mac OS X:
+#### For MacOS:
 
-Xcode Command Line Tools (And Privacy setting: [#277](https://github.com/go-vgo/robotgo/issues/277) )
+```
+brew install go
+```
+
+Xcode Command Line Tools; <br>
+And Privacy setting, add Screen Recording and Accessibility under: <br>
+`System Settings > Privacy & Security > Accessibility, Screen & System Audio Recording`.
 
 ```
 xcode-select --install
@@ -67,54 +80,112 @@ xcode-select --install
 
 #### For Windows:
 
-[MinGW-w64](https://sourceforge.net/projects/mingw-w64/files) (Use recommended) 
+```
+winget install Golang.go
+```
+
+[llvm-mingw](https://github.com/mstorsjo/llvm-mingw)
 
 ```
-Or the other GCC (But you should compile the "libpng" with yourself. 
-Or you can removed the bitmap.go. 
-
-In the plans, the bitmap.go will moves to the bitmap dir, but break the API. )
+winget install MartinStorsjo.LLVM-MinGW.UCRT
 ```
+
+or [Mingw-w64](https://sourceforge.net/projects/mingw-w64/files)
+
+```
+winget install BrechtSanders.WinLibs.POSIX.UCRT
+```
+
+Or Download the [Mingw-w64](https://sourceforge.net/projects/mingw-w64/files) and the others gcc, then set system environment variables like `C:\mingw64\bin` to the env `Path`.
+[Set environment variables to run GCC from command line](https://www.youtube.com/results?search_query=Set+environment+variables+to+run+GCC+from+command+line).
+
+`Or The others GCC` (Except the Mingw-w64, you should compile the "libpng" with yourself when use the [bitmap](https://github.com/vcaesar/bitmap).)
 
 #### For everything else:
 
 ```
-GCC, 
-libpng (bitmap)
+GCC
 
-X11 with the XTest extension (also known as the Xtst library)
+X11 with the XTest extension (the Xtst library)
 
-Event:
+"Clipboard": xsel xclip
 
-xcb, xkb, libxkbcommon
+"Bitmap": libpng (Just used by the "bitmap".)
 
-Clipboard:
-
-xsel xclip
+"Event-Gohook": xcb, xkb, libxkbcommon (Just used by the "hook".)
 ```
 
 ##### Ubuntu:
 
 ```yml
+# sudo apt install golang
+sudo snap install go  --classic
+
 # gcc
 sudo apt install gcc libc6-dev
 
-sudo apt install libx11-dev xorg-dev libxtst-dev libpng++-dev
+# x11
+sudo apt install libx11-dev xorg-dev libxtst-dev
 
-sudo apt install xcb libxcb-xkb-dev x11-xkb-utils libx11-xcb-dev libxkbcommon-x11-dev libxkbcommon-dev
-
+# Clipboard
 sudo apt install xsel xclip
+
+# Bitmap
+sudo apt install libpng++-dev
+
+# GoHook
+sudo apt install xcb libxcb-xkb-dev x11-xkb-utils libx11-xcb-dev libxkbcommon-x11-dev libxkbcommon-dev
 ```
 
 ##### Fedora:
 
 ```yml
-sudo dnf install libXtst-devel libxkbcommon-devel libxkbcommon-x11-devel xorg-x11-xkb-utils-devel
+# x11
+sudo dnf install libXtst-devel
 
+# Clipboard
+sudo dnf install xsel xclip
+
+# Bitmap
 sudo dnf install libpng-devel
 
-sudo dnf install xsel xclip
+# GoHook
+sudo dnf install libxkbcommon-devel libxkbcommon-x11-devel xkbcomp-devel
+xorg-x11-xkb-utils-devel (< Fedora 34)
 ```
+
+#### Wayland
+
+The Wayland backend is a **pure-Go (Cgo-free)** implementation, so no system C
+libraries are required. It needs a wlroots-based compositor (Sway, Hyprland,
+Wayfire, ...) that supports the following protocols:
+
+```
+zwlr_virtual_pointer_v1            (mouse control)
+zwp_virtual_keyboard_v1            (keyboard control)
+zwlr_screencopy_v1                 (screen capture)
+zwlr_foreign_toplevel_management_v1 (window management)
+```
+
+GNOME and KDE do **not** support these protocols natively.
+
+#### libei (GNOME / KDE)
+
+The libei backend is also a **pure-Go (Cgo-free)** implementation. It drives input
+through the freedesktop `xdg-desktop-portal` RemoteDesktop interface, so it works
+on GNOME and KDE (unlike the wlroots Wayland backend). It requires:
+
+```
+xdg-desktop-portal               (the portal D-Bus service)
+xdg-desktop-portal-gnome / -kde  (your desktop's portal backend)
+```
+
+Note: the libei backend handles mouse and keyboard input only. Screen capture and
+window management report `ErrNotSupported`. Absolute `Move` uses a ScreenCast
+monitor stream linked to the session (the first-run consent dialog covers both);
+set `libei.LinkScreenCast = false` to opt out and keep relative motion only.
+The portal never exposes the physical cursor, so `Location()` returns the last
+position injected by robotgo, not movement made with the real mouse.
 
 ## Installation:
 
@@ -133,6 +204,7 @@ go get github.com/go-vgo/robotgo
 png.h: No such file or directory? Please see [issues/47](https://github.com/go-vgo/robotgo/issues/47).
 
 ## Update:
+
 ```
 go get -u github.com/go-vgo/robotgo
 ```
@@ -140,6 +212,63 @@ go get -u github.com/go-vgo/robotgo
 Note go1.10.x C file compilation cache problem, [golang #24355](https://github.com/golang/go/issues/24355).
 `go mod vendor` problem, [golang #26366](https://github.com/golang/go/issues/26366).
 
+## Cgo-free Builds:
+
+RobotGo ships **pure-Go (Cgo-free)** backends for Windows, macOS, X11, Wayland
+and libei (Linux), it's experimental. They expose the same `robotgo` API, so your code needs no changes —
+only a build tag. These backends cross-compile with `CGO_ENABLED=0` (no GCC,
+MinGW, Xcode, or X11 headers required).
+
+| Backend                          | Build tag | Go package                          |
+| -------------------------------- | --------- | ----------------------------------- |
+| Windows (Cgo-free)               | `win`     | `github.com/go-vgo/robotgo/win`     |
+| macOS (Quartz via purego)        | `mac`     | `github.com/go-vgo/robotgo/darwin`  |
+| X11 (Linux, pure-Go X protocol)  | `x11`     | `github.com/go-vgo/robotgo/x11`     |
+| Wayland (Linux, wlroots)         | `wayland` | `github.com/go-vgo/robotgo/wayland` |
+| libei (Linux, GNOME/KDE portal)  | `libei`   | `github.com/go-vgo/robotgo/libei`   |
+| Pure-Go default (all platforms)  | `purego`  | selects `mac`/`win`/`wayland` above |
+
+```sh
+# Pure-Go default backend per platform, one tag for all targets:
+# macOS -> mac, Windows -> win, Linux -> wayland (combine with x11/libei to override)
+go build -tags purego .
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags "purego,x11" .
+
+# Windows, no Cgo / no MinGW required
+CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -tags win .
+
+# macOS, Quartz/CoreGraphics loaded at runtime via purego (no Xcode required)
+CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -tags mac .
+
+# X11, pure-Go X protocol (XTEST) — no X11 headers required
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags x11 .
+
+# Wayland, wlroots-based compositor (Sway, Hyprland, Wayfire, ...)
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags wayland .
+
+# libei, GNOME/KDE via xdg-desktop-portal RemoteDesktop
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags libei .
+```
+
+Note: the examples build the module root (`.`) rather than `./...`, because
+`examples/` and some OS-specific subpackages use APIs that are only available
+with the default Cgo backend.
+
+Under the `win` tag the default Cgo/Win32 backend is excluded and calls are
+forwarded to the pure-Go `win` package; under the `mac` tag the default
+Cgo/Quartz backend is excluded and calls are forwarded to the pure-Go `darwin`
+package (window management reports `ErrNotSupported`); under the `x11` tag the
+Cgo/X11 backend is excluded and calls are forwarded to the pure-Go `x11`
+package; under the `wayland` tag the Cgo/X11 backend is excluded and calls are
+forwarded to the pure-Go `wayland` package; under the `libei` tag both the
+Cgo/X11 and wlroots Wayland backends are excluded and calls are forwarded to
+the pure-Go `libei` package.
+
+The `purego` tag is a cross-platform shortcut: it excludes the Cgo backend
+everywhere and picks the pure-Go default for the target OS — `mac` on macOS,
+`win` on Windows and `wayland` on Linux. On Linux you can combine it with
+`x11` or `libei` (e.g. `-tags "purego,libei"`) to pick a different pure-Go
+backend.
 
 ## [Examples:](https://github.com/go-vgo/robotgo/blob/master/examples)
 
@@ -149,11 +278,22 @@ Note go1.10.x C file compilation cache problem, [golang #24355](https://github.c
 package main
 
 import (
+  "fmt"
   "github.com/go-vgo/robotgo"
 )
 
 func main() {
-  // robotgo.ScrollMouse(10, "up")
+  robotgo.MouseSleep = 300
+
+  robotgo.Move(100, 100)
+  fmt.Println(robotgo.Location())
+  robotgo.Move(100, -200) // multi screen supported
+  robotgo.MoveSmooth(120, -150)
+  fmt.Println(robotgo.Location())
+
+  robotgo.ScrollDir(10, "up")
+  robotgo.ScrollDir(20, "right")
+
   robotgo.Scroll(0, -10)
   robotgo.Scroll(100, 0)
 
@@ -161,10 +301,9 @@ func main() {
   robotgo.ScrollSmooth(-10, 6)
   // robotgo.ScrollRelative(10, -100)
 
-  robotgo.MouseSleep = 100
   robotgo.Move(10, 20)
   robotgo.MoveRelative(0, -10)
-  robotgo.Drag(10, 10)
+  robotgo.DragSmooth(10, 10)
 
   robotgo.Click("wheelRight")
   robotgo.Click("left", true)
@@ -187,11 +326,12 @@ import (
 )
 
 func main() {
-  robotgo.TypeStr("Hello World")
-  robotgo.TypeStr("だんしゃり", 1.0)
-  // robotgo.TypeStr("テストする")
+  robotgo.Type("Hello World")
+  robotgo.Type("だんしゃり", 0, 1)
+  // robotgo.Type("テストする")
 
-  robotgo.TypeStr("Hi galaxy. こんにちは世界.")
+  robotgo.Type("Hi, Seattle space needle, Golden gate bridge, One world trade center.")
+  robotgo.Type("Hi galaxy, hi stars, hi MT.Rainier, hi sea. こんにちは世界.")
   robotgo.Sleep(1)
 
   // ustr := uint32(robotgo.CharCodeAt("Test", 0))
@@ -199,10 +339,10 @@ func main() {
 
   robotgo.KeySleep = 100
   robotgo.KeyTap("enter")
-  // robotgo.TypeStr("en")
-  robotgo.KeyTap("i", "alt", "command")
+  // robotgo.Type("en")
+  robotgo.KeyTap("i", "alt", "cmd")
 
-  arr := []string{"alt", "command"}
+  arr := []string{"alt", "cmd"}
   robotgo.KeyTap("i", arr)
 
   robotgo.MilliSleep(100)
@@ -224,13 +364,14 @@ package main
 
 import (
   "fmt"
+  "strconv"
 
   "github.com/go-vgo/robotgo"
   "github.com/vcaesar/imgo"
 )
 
 func main() {
-  x, y := robotgo.GetMousePos()
+  x, y := robotgo.Location()
   fmt.Println("pos: ", x, y)
 
   color := robotgo.GetPixelColor(100, 200)
@@ -241,14 +382,30 @@ func main() {
 
   bit := robotgo.CaptureScreen(10, 10, 30, 30)
   defer robotgo.FreeBitmap(bit)
-  robotgo.SaveBitmap(bit, "test_1.png")
 
   img := robotgo.ToImage(bit)
   imgo.Save("test.png", img)
+
+  num := robotgo.DisplaysNum()
+  for i := 0; i < num; i++ {
+    robotgo.DisplayID = i
+    img1, _ := robotgo.CaptureImg()
+    path1 := "save_" + strconv.Itoa(i)
+    robotgo.Save(img1, path1+".png")
+    robotgo.SaveJpeg(img1, path1+".jpeg", 50)
+
+    img2, _ := robotgo.CaptureImg(10, 10, 20, 20)
+    robotgo.Save(img2, "test_"+strconv.Itoa(i)+".png")
+
+    x, y, w, h := robotgo.GetDisplayBounds(i)
+    img3, err := robotgo.CaptureImg(x, y, w, h)
+    fmt.Println("Capture error: ", err)
+    robotgo.Save(img3, path1+"_1.png")
+  }
 }
 ```
 
-#### [Bitmap](https://github.com/go-vgo/robotgo/blob/master/examples/bitmap/main.go)
+#### [Bitmap](https://github.com/vcaesar/bitmap/blob/main/examples/main.go)
 
 ```Go
 package main
@@ -257,30 +414,31 @@ import (
   "fmt"
 
   "github.com/go-vgo/robotgo"
+  "github.com/vcaesar/bitmap"
 )
 
 func main() {
-  bitmap := robotgo.CaptureScreen(10, 20, 30, 40)
+  bit := robotgo.CaptureScreen(10, 20, 30, 40)
   // use `defer robotgo.FreeBitmap(bit)` to free the bitmap
-  defer robotgo.FreeBitmap(bitmap)
+  defer robotgo.FreeBitmap(bit)
 
-  fmt.Println("bitmap...", bitmap)
-  img := robotgo.ToImage(bitmap)
-  robotgo.SavePng(img, "test_1.png")
+  fmt.Println("bitmap...", bit)
+  img := robotgo.ToImage(bit)
+  // robotgo.SavePng(img, "test_1.png")
+  robotgo.Save(img, "test_1.png")
 
   bit2 := robotgo.ToCBitmap(robotgo.ImgToBitmap(img))
-  fx, fy := robotgo.FindBitmap(bit2)
+  fx, fy := bitmap.Find(bit2)
   fmt.Println("FindBitmap------ ", fx, fy)
   robotgo.Move(fx, fy)
 
-  arr := robotgo.FindAllBitmap(bit2)
+  arr := bitmap.FindAll(bit2)
   fmt.Println("Find all bitmap: ", arr)
-  robotgo.SaveBitmap(bitmap, "test.png")
 
-  fx, fy = robotgo.FindBitmap(bitmap)
+  fx, fy = bitmap.Find(bit)
   fmt.Println("FindBitmap------ ", fx, fy)
 
-  robotgo.SaveBitmap(bitmap, "test.png")
+  bitmap.Save(bit, "test.png")
 }
 ```
 
@@ -295,6 +453,7 @@ import (
 
   "github.com/go-vgo/robotgo"
   "github.com/vcaesar/gcv"
+  "github.com/vcaesar/bitmap"
 )
 
 func main() {
@@ -311,18 +470,18 @@ func opencv() {
   fmt.Println(gcv.FindImgFile(name1, name))
   fmt.Println(gcv.FindAllImgFile(name1, name))
 
-  bit := robotgo.OpenBitmap(name1)
-  defer robotgo.FindBitmap(bit)
+  bit := bitmap.Open(name1)
+  defer robotgo.FreeBitmap(bit)
   fmt.Print("find bitmap: ")
-  fmt.Println(robotgo.FindBitmap(bit))
+  fmt.Println(bitmap.Find(bit))
 
   // bit0 := robotgo.CaptureScreen()
   // img := robotgo.ToImage(bit0)
   // bit1 := robotgo.CaptureScreen(10, 10, 30, 30)
   // img1 := robotgo.ToImage(bit1)
   // defer robotgo.FreeBitmapArr(bit0, bit1)
-  img := robotgo.CaptureImg()
-  img1 := robotgo.CaptureImg(10, 10, 30, 30)
+  img, _ := robotgo.CaptureImg()
+  img1, _ := robotgo.CaptureImg(10, 10, 30, 30)
 
   fmt.Print("gcv find image: ")
   fmt.Println(gcv.FindImg(img1, img))
@@ -346,7 +505,7 @@ func opencv() {
 }
 ```
 
-#### [Event](https://github.com/go-vgo/robotgo/blob/master/examples/gohook/main.go)
+#### [Event](https://github.com/robotn/gohook/blob/master/examples/main.go)
 
 ```Go
 package main
@@ -354,7 +513,7 @@ package main
 import (
   "fmt"
 
-  "github.com/go-vgo/robotgo"
+  // "github.com/go-vgo/robotgo"
   hook "github.com/robotn/gohook"
 )
 
@@ -366,18 +525,18 @@ func main() {
 
 func add() {
   fmt.Println("--- Please press ctrl + shift + q to stop hook ---")
-  robotgo.EventHook(hook.KeyDown, []string{"q", "ctrl", "shift"}, func(e hook.Event) {
+  hook.Register(hook.KeyDown, []string{"q", "ctrl", "shift"}, func(e hook.Event) {
     fmt.Println("ctrl-shift-q")
-    robotgo.EventEnd()
+    hook.End()
   })
 
   fmt.Println("--- Please press w---")
-  robotgo.EventHook(hook.KeyDown, []string{"w"}, func(e hook.Event) {
+  hook.Register(hook.KeyDown, []string{"w"}, func(e hook.Event) {
     fmt.Println("w")
   })
 
-  s := robotgo.EventStart()
-  <-robotgo.EventProcess(s)
+  s := hook.Start()
+  <-hook.Process(s)
 }
 
 func low() {
@@ -390,17 +549,17 @@ func low() {
 }
 
 func event() {
-  ok := robotgo.AddEvents("q", "ctrl", "shift")
+  ok := hook.AddEvents("q", "ctrl", "shift")
   if ok {
     fmt.Println("add events...")
   }
 
-  keve := robotgo.AddEvent("k")
+  keve := hook.AddEvent("k")
   if keve {
     fmt.Println("you press... ", "k")
   }
 
-  mleft := robotgo.AddEvent("mleft")
+  mleft := hook.AddEvent("mleft")
   if mleft {
     fmt.Println("you press... ", "mouse left button")
   }
@@ -424,7 +583,13 @@ func main() {
     fmt.Println("pids... ", fpid)
 
     if len(fpid) > 0 {
-      robotgo.ActivePID(fpid[0])
+      robotgo.Type("Hi galaxy!", fpid[0])
+      robotgo.KeyTap("a", fpid[0], "cmd")
+
+      robotgo.KeyToggle("a", fpid[0])
+      robotgo.KeyToggle("a", fpid[0], "up")
+
+      robotgo.ActivePid(fpid[0])
 
       robotgo.Kill(fpid[0])
     }
@@ -439,7 +604,7 @@ func main() {
     robotgo.Kill(100)
   }
 
-  abool := robotgo.ShowAlert("test", "robotgo")
+  abool := robotgo.Alert("test", "robotgo")
   if abool {
  	  fmt.Println("ok@@@ ", "ok")
   }
@@ -449,46 +614,18 @@ func main() {
 }
 ```
 
-## CrossCompiling
-
-##### Windows64 to windows32
-```Go
-SET CGO_ENABLED=1
-SET GOARCH=386
-go build main.go
-```
-
-#### Other to windows
-
-Install Requirements (Ubuntu):
-```bash
-sudo apt install gcc-multilib
-sudo apt install gcc-mingw-w64
-# fix err: zlib.h: No such file or directory
-sudo apt install libz-mingw-w64-dev
-```
-
-Build the binary:
-```Go
-GOOS=windows GOARCH=amd64 CGO_ENABLED=1 CC=x86_64-w64-mingw32-gcc CXX=x86_64-w64-mingw32-g++ go build -x ./
-```
-
-```
-// CC=mingw-w64\x86_64-7.2.0-win32-seh-rt_v5-rev1\mingw64\bin\gcc.exe
-// CXX=mingw-w64\x86_64-7.2.0-win32-seh-rt_v5-rev1\mingw64\bin\g++.exe
-```
-
-Some discussions and questions, please see [issues/228](https://github.com/go-vgo/robotgo/issues/228), [issues/143](https://github.com/go-vgo/robotgo/issues/143).
-
 ## Authors
-* [The author is vz](https://github.com/vcaesar)
-* [Maintainers](https://github.com/orgs/go-vgo/people)
-* [Contributors](https://github.com/go-vgo/robotgo/graphs/contributors)
+
+- [The author is Evans](https://github.com/vcaesar)
+- [Maintainers](https://github.com/orgs/go-vgo/people)
 
 ## Plans
-- Update Find an image on screen, read pixels from an image
+
+- Refactor some C code to Go (such as x11, windows)
+- Better multiscreen support
+- Wayland support
 - Update Window Handle
-- Try support Android, maybe support IOS
+- Try to support Android and IOS
 
 ## Contributors
 
@@ -497,6 +634,6 @@ Some discussions and questions, please see [issues/228](https://github.com/go-vg
 
 ## License
 
-Robotgo is primarily distributed under the terms of "both the MIT license and the Apache License (Version 2.0)", with portions covered by various BSD-like licenses.
+Robotgo is primarily distributed under the terms of "the Apache License (Version 2.0)", with portions covered by various BSD-like licenses.
 
-See [LICENSE-APACHE](http://www.apache.org/licenses/LICENSE-2.0), [LICENSE-MIT](https://github.com/go-vgo/robotgo/blob/master/LICENSE).
+See [LICENSE-APACHE](http://www.apache.org/licenses/LICENSE-2.0), [LICENSE](https://github.com/go-vgo/robotgo/blob/master/LICENSE).

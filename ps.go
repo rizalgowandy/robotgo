@@ -1,11 +1,12 @@
-// Copyright 2016 The go-vgo Project Developers. See the COPYRIGHT
-// file at the top-level directory of this distribution and at
+// Copyright (c) 2016-2026 AtomAI, All rights reserved.
+//
+// See the COPYRIGHT file at the top-level directory of this distribution and at
 // https://github.com/go-vgo/robotgo/blob/master/LICENSE
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
-// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
-// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
-// option. This file may not be copied, modified, or distributed
+// http://www.apache.org/licenses/LICENSE-2.0>
+//
+// This file may not be copied, modified, or distributed
 // except according to those terms.
 
 package robotgo
@@ -14,17 +15,17 @@ import ps "github.com/vcaesar/gops"
 
 // Nps process struct
 type Nps struct {
-	Pid  int32
+	Pid  int
 	Name string
 }
 
 // Pids get the all process id
-func Pids() ([]int32, error) {
+func Pids() ([]int, error) {
 	return ps.Pids()
 }
 
 // PidExists determine whether the process exists
-func PidExists(pid int32) (bool, error) {
+func PidExists(pid int) (bool, error) {
 	return ps.PidExists(pid)
 }
 
@@ -45,7 +46,7 @@ func Process() ([]Nps, error) {
 }
 
 // FindName find the process name by the process id
-func FindName(pid int32) (string, error) {
+func FindName(pid int) (string, error) {
 	return ps.FindName(pid)
 }
 
@@ -57,12 +58,12 @@ func FindNames() ([]string, error) {
 // FindIds finds the all processes named with a subset
 // of "name" (case insensitive),
 // return matched IDs.
-func FindIds(name string) ([]int32, error) {
+func FindIds(name string) ([]int, error) {
 	return ps.FindIds(name)
 }
 
 // FindPath find the process path by the process pid
-func FindPath(pid int32) (string, error) {
+func FindPath(pid int) (string, error) {
 	return ps.FindPath(pid)
 }
 
@@ -72,6 +73,6 @@ func Run(path string) ([]byte, error) {
 }
 
 // Kill kill the process by PID
-func Kill(pid int32) error {
+func Kill(pid int) error {
 	return ps.Kill(pid)
 }

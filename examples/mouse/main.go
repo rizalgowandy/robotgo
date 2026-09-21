@@ -1,11 +1,12 @@
-// Copyright 2016 The go-vgo Project Developers. See the COPYRIGHT
-// file at the top-level directory of this distribution and at
+// Copyright (c) 2016-2026 AtomAI, All rights reserved.
+//
+// See the COPYRIGHT file at the top-level directory of this distribution and at
 // https://github.com/go-vgo/robotgo/blob/master/LICENSE
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
-// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
-// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
-// option. This file may not be copied, modified, or distributed
+// http://www.apache.org/licenses/LICENSE-2.0>
+//
+// This file may not be copied, modified, or distributed
 // except according to those terms.
 
 package main
@@ -25,9 +26,7 @@ func move() {
 	// move the mouse to 100, 200
 	robotgo.Move(100, 200)
 
-	robotgo.Drag(10, 10)
-	robotgo.Drag(20, 20, "right")
-	//
+	// drag mouse with smooth
 	robotgo.DragSmooth(10, 10)
 	robotgo.DragSmooth(100, 200, 1.0, 100.0)
 
@@ -37,7 +36,7 @@ func move() {
 	robotgo.MoveSmoothRelative(10, -100, 1.0, 30.0)
 
 	for i := 0; i < 1080; i += 1000 {
-		fmt.Println(i)
+		fmt.Println("i: ", i)
 		// MoveMouse(800, i)
 		robotgo.Move(800, i)
 	}
@@ -57,7 +56,7 @@ func click() {
 
 func get() {
 	// gets the mouse coordinates
-	x, y := robotgo.GetMousePos()
+	x, y := robotgo.Location()
 	fmt.Println("pos:", x, y)
 	if x == 456 && y == 586 {
 		fmt.Println("mouse...", "586")
@@ -68,9 +67,14 @@ func get() {
 
 func toggleAndScroll() {
 	// scrolls the mouse either up
-	// robotgo.ScrollMouse(10, "up")
+	robotgo.ScrollDir(10, "up")
+	robotgo.ScrollDir(10, "right")
+
 	robotgo.Scroll(100, 10)
 	robotgo.Scroll(0, -10)
+
+	robotgo.Toggle("left")
+	robotgo.Toggle("left", "up")
 
 	// toggles the right mouse button
 	robotgo.Toggle("right")

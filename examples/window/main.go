@@ -1,11 +1,12 @@
-// Copyright 2016 The go-vgo Project Developers. See the COPYRIGHT
-// file at the top-level directory of this distribution and at
+// Copyright (c) 2016-2026 AtomAI, All rights reserved.
+//
+// See the COPYRIGHT file at the top-level directory of this distribution and at
 // https://github.com/go-vgo/robotgo/blob/master/LICENSE
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
-// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
-// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
-// option. This file may not be copied, modified, or distributed
+// http://www.apache.org/licenses/LICENSE-2.0>
+//
+// This file may not be copied, modified, or distributed
 // except according to those terms.
 
 package main
@@ -19,17 +20,16 @@ import (
 
 func alert() {
 	// show Alert Window
-	abool := robotgo.ShowAlert("hello", "robotgo")
+	abool := robotgo.Alert("hello", "robotgo")
 	if abool {
 		fmt.Println("ok@@@", "ok")
 	}
-	robotgo.ShowAlert("hello", "robotgo", "Ok", "Cancel")
-
+	robotgo.Alert("hello", "robotgo", "Ok", "Cancel")
 }
 
 func get() {
 	// get the current process id
-	pid := robotgo.GetPID()
+	pid := robotgo.GetPid()
 	fmt.Println("pid----", pid)
 
 	// get current Window Active
@@ -50,31 +50,45 @@ func get() {
 func findIds() {
 	// find the process id by the process name
 	fpid, err := robotgo.FindIds("Google")
-	if err == nil {
-		fmt.Println("pids...", fpid)
-		if len(fpid) > 0 {
-			robotgo.ActivePID(fpid[0])
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
-			tl := robotgo.GetTitle(fpid[0])
-			fmt.Println("pid[0] title is: ", tl)
+	if len(fpid) > 0 {
+		robotgo.KeyTap("a", fpid[0])
+		robotgo.TypeStr("Hi galaxy!", fpid[0])
 
-			x, y, w, h := robotgo.GetBounds(fpid[0])
-			fmt.Println("GetBounds is: ", x, y, w, h)
+		robotgo.KeyToggle("a", fpid[0], "cmd")
+		robotgo.KeyToggle("a", fpid[0], "cmd", "up")
+	}
 
-			// Windows
-			// hwnd := robotgo.FindWindow("google")
-			// hwnd := robotgo.GetHWND()
-			robotgo.MinWindow(fpid[0])
-			robotgo.MaxWindow(fpid[0])
-			robotgo.CloseWindow(fpid[0])
-
-			robotgo.Kill(fpid[0])
+	fmt.Println("pids...", fpid)
+	if len(fpid) > 0 {
+		err = robotgo.ActivePid(fpid[0])
+		if err != nil {
+			fmt.Println(err)
 		}
+
+		tl := robotgo.GetTitle(fpid[0])
+		fmt.Println("pid[0] title is: ", tl)
+
+		x, y, w, h := robotgo.GetBounds(fpid[0])
+		fmt.Println("GetBounds is: ", x, y, w, h)
+
+		// Windows
+		// hwnd := robotgo.FindWindow("google")
+		// hwnd := robotgo.GetHWND()
+		robotgo.MinWindow(fpid[0])
+		robotgo.MaxWindow(fpid[0])
+		robotgo.CloseWindow(fpid[0])
+
+		robotgo.Kill(fpid[0])
 	}
 }
 
 func active() {
-	robotgo.ActivePID(100)
+	robotgo.ActivePid(100)
 	// robotgo.Sleep(2)
 	robotgo.ActiveName("code")
 	robotgo.Sleep(1)

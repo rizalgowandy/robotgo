@@ -1,149 +1,78 @@
-// Copyright 2016 The go-vgo Project Developers. See the COPYRIGHT
-// file at the top-level directory of this distribution and at
+// Copyright (c) 2016-2026 AtomAI, All rights reserved.
+// 
+// See the COPYRIGHT file at the top-level directory of this distribution and at
 // https://github.com/go-vgo/robotgo/blob/master/LICENSE
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
-// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
-// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
-// option. This file may not be copied, modified, or distributed
+// http://www.apache.org/licenses/LICENSE-2.0>
+//
+// This file may not be copied, modified, or distributed
 // except according to those terms.
 
-// #include "../base/os.h"
-#if defined(USE_X11)
-	// #include <X11/Xlib.h>
-	// #include <X11/Xatom.h>
-	#include <X11/Xresource.h>
-#endif
+// #if defined(USE_X11)
+// 	#include <X11/Xresource.h>
+// #endif
 
-Bounds get_client(uintptr pid, uintptr isHwnd);
+Bounds get_client(uintptr pid, int8_t isPid);
 
-intptr scaleX(){
-	#if defined(IS_MACOSX)
-		return 0;
-	#elif defined(USE_X11)
-		return 0;
-	#elif defined(IS_WINDOWS)
-		// Get desktop dc
-		HDC desktopDc = GetDC(NULL);
-		// Get native resolution
-		intptr horizontalDPI = GetDeviceCaps(desktopDc, LOGPIXELSX);
-		// intptr verticalDPI = GetDeviceCaps(desktopDc, LOGPIXELSY);
-		return horizontalDPI;
-	#endif
-}
-
-double sys_scale() {
-	#if defined(IS_MACOSX)
-	
-		CGDirectDisplayID displayID = CGMainDisplayID();
-		CGDisplayModeRef modeRef = CGDisplayCopyDisplayMode(displayID);
-
-		double pixelWidth = CGDisplayModeGetPixelWidth(modeRef);
-		double targetWidth = CGDisplayModeGetWidth(modeRef);
-		
-		return pixelWidth / targetWidth;
-	#elif defined(USE_X11)
-		double xres;
-		Display *dpy;
-
-		char *displayname = NULL;
-		int scr = 0; /* Screen number */
-
-		dpy = XOpenDisplay(displayname);
-		xres = ((((double) DisplayWidth(dpy, scr)) * 25.4) /
-			((double) DisplayWidthMM(dpy, scr)));
-
-		// https://github.com/glfw/glfw/issues/1019#issuecomment-302772498
-		char *rms = XResourceManagerString(dpy);
-		if (rms) {
-			XrmDatabase db = XrmGetStringDatabase(rms);
-			if (db) {
-				XrmValue value;
-				char *type = NULL;
-
-				if (XrmGetResource(db, "Xft.dpi", "String", &type, &value)) {
-					if (value.addr) {
-						xres = atof(value.addr);
-					}
-				}
-
-				XrmDestroyDatabase(db);
-			}
-		}
-		XCloseDisplay (dpy);
-
-		return xres / 96.0;
-   	#elif defined(IS_WINDOWS)
-   		double s = scaleX() / 96.0;
-   		return s;
-   	#endif
-}
-
-intptr scaleY(){
-	#if defined(IS_MACOSX)
-		return 0;
-	#elif defined(USE_X11)
-		return 0;
-	#elif defined(IS_WINDOWS)
-		// Get desktop dc
-		HDC desktopDc = GetDC(NULL);
-		// Get native resolution
-		intptr verticalDPI = GetDeviceCaps(desktopDc, LOGPIXELSY);
-		return verticalDPI;
-	#endif
-}
-
-Bounds get_bounds(uintptr pid, uintptr isHwnd){
+Bounds get_bounds(uintptr pid, int8_t isPid){
 	// Check if the window is valid
 	Bounds bounds;
-	if (!IsValid()) { return bounds; }
+	if (!is_valid()) { return bounds; }
 
     #if defined(IS_MACOSX)
-
 		// Bounds bounds;
 		AXValueRef axp = NULL;
 		AXValueRef axs = NULL;
 		AXUIElementRef AxID = AXUIElementCreateApplication(pid);
+		AXUIElementRef AxWin = NULL;
+
+		// Get the window from the application
+		if (AXUIElementCopyAttributeValue(AxID, kAXFocusedWindowAttribute, (CFTypeRef *)&AxWin)
+			!= kAXErrorSuccess || AxWin == NULL) {
+			// If no focused window, try to get the main window
+			if (AXUIElementCopyAttributeValue(AxID, kAXMainWindowAttribute, (CFTypeRef *)&AxWin)
+				!= kAXErrorSuccess || AxWin == NULL) {
+				goto exit;
+			}
+		}
 
 		// Determine the current point of the window
-		if (AXUIElementCopyAttributeValue(
-			AxID, kAXPositionAttribute, (CFTypeRef*) &axp)
-			!= kAXErrorSuccess || axp == NULL){
+		if (AXUIElementCopyAttributeValue(AxWin, kAXPositionAttribute, (CFTypeRef*) &axp)
+			!= kAXErrorSuccess || axp == NULL) {
 			goto exit;
 		}
 
 		// Determine the current size of the window
-		if (AXUIElementCopyAttributeValue(
-			AxID, kAXSizeAttribute, (CFTypeRef*) &axs)
-			!= kAXErrorSuccess || axs == NULL){
+		if (AXUIElementCopyAttributeValue(AxWin, kAXSizeAttribute, (CFTypeRef*) &axs)
+			!= kAXErrorSuccess || axs == NULL) {
 			goto exit;
 		}
 
 		CGPoint p; CGSize s;
 		// Attempt to convert both values into atomic types
 		if (AXValueGetValue(axp, kAXValueCGPointType, &p) &&
-			AXValueGetValue(axs, kAXValueCGSizeType, &s)){
+			AXValueGetValue(axs, kAXValueCGSizeType, &s)) {
 			bounds.X = p.x;
 			bounds.Y = p.y;
 			bounds.W = s.width;
 			bounds.H = s.height;
 		}
-		
-		// return bounds;
+
 	exit:
 		if (axp != NULL) { CFRelease(axp); }
 		if (axs != NULL) { CFRelease(axs); }
+		if (AxWin != NULL) { CFRelease(AxWin); }
+		if (AxID != NULL) { CFRelease(AxID); }
 
 		return bounds;
-
     #elif defined(USE_X11)
-
         // Ignore X errors
         XDismissErrors();
         MData win;
         win.XWin = (Window)pid;
 
-        Bounds client = get_client(pid, isHwnd);
+        Bounds client = get_client(pid, isPid);
         Bounds frame = GetFrame(win);
 
         bounds.X = client.X - frame.X;
@@ -152,14 +81,8 @@ Bounds get_bounds(uintptr pid, uintptr isHwnd){
         bounds.H = client.H + frame.H;
 
         return bounds;
-
     #elif defined(IS_WINDOWS)
-        HWND hwnd;
-        if (isHwnd == 0) {
-            hwnd= GetHwndByPId(pid);
-        } else {
-            hwnd = (HWND)pid;
-        }
+        HWND hwnd = getHwnd(pid, isPid);
 
         RECT rect = { 0 };
         GetWindowRect(hwnd, &rect);
@@ -170,21 +93,17 @@ Bounds get_bounds(uintptr pid, uintptr isHwnd){
         bounds.H = rect.bottom - rect.top;
 
         return bounds;
-
     #endif
 }
 
-Bounds get_client(uintptr pid, uintptr isHwnd){
+Bounds get_client(uintptr pid, int8_t isPid) {
 	// Check if the window is valid
 	Bounds bounds;
-	if (!IsValid()) { return bounds; }
+	if (!is_valid()) { return bounds; }
 
 	#if defined(IS_MACOSX)
-
-		return get_bounds(pid, isHwnd);
-
+		return get_bounds(pid, isPid);
 	#elif defined(USE_X11)
-
         Display *rDisplay = XOpenDisplay(NULL);
 
 		// Ignore X errors
@@ -196,11 +115,10 @@ Bounds get_client(uintptr pid, uintptr isHwnd){
 		Window root, parent;
 		Window* children;
 		unsigned int count;
-		int32 x = 0, y = 0;
+		int32_t x = 0, y = 0;
 
 		// Check if the window is the root
-		XQueryTree(rDisplay, win.XWin,
-			&root, &parent, &children, &count);
+		XQueryTree(rDisplay, win.XWin, &root, &parent, &children, &count);
 		if (children) { XFree(children); }
 
 		// Retrieve window attributes
@@ -208,12 +126,9 @@ Bounds get_client(uintptr pid, uintptr isHwnd){
 		XGetWindowAttributes(rDisplay, win.XWin, &attr);
 
 		// Coordinates must be translated
-		if (parent != attr.root){
-			XTranslateCoordinates(rDisplay, win.XWin, attr.root, attr.x,
-			 attr.y, &x, &y, &parent);
-		}
-		// Coordinates can be left alone
-		else {
+		if (parent != attr.root) {
+			XTranslateCoordinates(rDisplay, win.XWin, attr.root, attr.x, attr.y, &x, &y, &parent);
+		} else {
 			x = attr.x;
 			y = attr.y;
 		}
@@ -223,16 +138,11 @@ Bounds get_client(uintptr pid, uintptr isHwnd){
 		bounds.Y = y;
 		bounds.W = attr.width;
 		bounds.H = attr.height;
+		XCloseDisplay(rDisplay);
+
 		return bounds;
-
 	#elif defined(IS_WINDOWS)
-		HWND hwnd;
-		if (isHwnd == 0) {
-			hwnd= GetHwndByPId(pid);
-		} else {
-			hwnd = (HWND)pid;
-		}
-
+		HWND hwnd = getHwnd(pid, isPid);
 
 		RECT rect = { 0 };
 		GetClientRect(hwnd, &rect);
@@ -250,6 +160,5 @@ Bounds get_client(uintptr pid, uintptr isHwnd){
 		bounds.H = rect.bottom - rect.top;
 
 		return bounds;
-
 	#endif
 }

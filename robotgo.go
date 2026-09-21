@@ -1,86 +1,67 @@
-// Copyright 2016 The go-vgo Project Developers. See the COPYRIGHT
-// file at the top-level directory of this distribution and at
+//go:build !wayland && !win && !libei && !mac && !x11 && !purego
+// +build !wayland,!win,!libei,!mac,!x11,!purego
+
+// Copyright (c) 2016-2026 AtomAI, All rights reserved.
+//
+// See the COPYRIGHT file at the top-level directory of this distribution and at
 // https://github.com/go-vgo/robotgo/blob/master/LICENSE
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
-// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
-// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
-// option. This file may not be copied, modified, or distributed
+// http://www.apache.org/licenses/LICENSE-2.0>
+//
+// This file may not be copied, modified, or distributed
 // except according to those terms.
 
 /*
-
 Package robotgo Go native cross-platform system automation.
 
 Please make sure Golang, GCC is installed correctly before installing RobotGo;
 
 See Requirements:
+
 	https://github.com/go-vgo/robotgo#requirements
 
 Installation:
+
 With Go module support (Go 1.11+), just import:
+
 	import "github.com/go-vgo/robotgo"
 
 Otherwise, to install the robotgo package, run the command:
+
 	go get -u github.com/go-vgo/robotgo
 */
 package robotgo
 
 /*
-//#if defined(IS_MACOSX)
-	#cgo darwin CFLAGS: -x objective-c -Wno-deprecated-declarations
-	#cgo darwin LDFLAGS: -framework Cocoa -framework OpenGL -framework IOKit
-	#cgo darwin LDFLAGS: -framework Carbon -framework CoreFoundation
-//#elif defined(USE_X11)
-	#cgo linux CFLAGS: -I/usr/src
-	#cgo linux LDFLAGS: -L/usr/src -lX11 -lXtst -lm
-	// #cgo linux LDFLAGS: -lX11-xcb -lxcb -lxcb-xkb -lxkbcommon -lxkbcommon-x11
-//#endif
-	// #cgo windows LDFLAGS: -lgdi32 -luser32 -lpng -lz
-	#cgo windows LDFLAGS: -lgdi32 -luser32
-// #include <AppKit/NSEvent.h>
+#cgo darwin CFLAGS: -x objective-c -Wno-deprecated-declarations
+#cgo darwin LDFLAGS: -framework Cocoa -framework CoreFoundation -framework IOKit
+#cgo darwin LDFLAGS: -framework Carbon -framework OpenGL
+//
+#if __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ > 140400
+#cgo darwin LDFLAGS: -framework ScreenCaptureKit
+#endif
+
+#cgo linux CFLAGS: -I/usr/src
+#cgo linux LDFLAGS: -L/usr/src -lm -lX11 -lXtst
+
+#cgo windows LDFLAGS: -lgdi32 -luser32
+//
 #include "screen/goScreen.h"
-#include "mouse/goMouse.h"
-#include "key/goKey.h"
-//#include "event/goEvent.h"
+#include "mouse/mouse_c.h"
 #include "window/goWindow.h"
 */
 import "C"
 
 import (
+	"errors"
 	"fmt"
 	"image"
-
-	// "os"
-	"reflect"
 	"runtime"
-	"strconv"
-	"strings"
-	"time"
+	"syscall"
 	"unsafe"
 
-	// "syscall"
-	"math/rand"
-
-	"github.com/go-vgo/robotgo/clipboard"
 	"github.com/vcaesar/tt"
-)
-
-const (
-	// Version get the robotgo version
-	Version = "v0.100.0.1189, MT. Baker!"
-)
-
-// GetVersion get the robotgo version
-func GetVersion() string {
-	return Version
-}
-
-var (
-	// MouseSleep set the mouse default millisecond sleep time
-	MouseSleep = 0
-	// KeySleep set the key default millisecond sleep time
-	KeySleep = 0
 )
 
 type (
@@ -90,55 +71,12 @@ type (
 	CHex C.MMRGBHex
 	// CBitmap define CBitmap as C.MMBitmapRef type
 	CBitmap C.MMBitmapRef
+	// Handle define window Handle as C.MData type
+	Handle C.MData
 )
 
-// Bitmap is Bitmap struct
-type Bitmap struct {
-	ImgBuf        *uint8
-	Width, Height int
-
-	Bytewidth     int
-	BitsPixel     uint8
-	BytesPerPixel uint8
-}
-
-// Point is point struct
-type Point struct {
-	X int
-	Y int
-}
-
-// Size is size structure
-type Size struct {
-	W, H int
-}
-
-// Rect is rect structure
-type Rect struct {
-	Point
-	Size
-}
-
-// Try handler(err)
-func Try(fun func(), handler func(interface{})) {
-	defer func() {
-		if err := recover(); err != nil {
-			handler(err)
-		}
-	}()
-	fun()
-}
-
-// MilliSleep sleep tm milli second
-func MilliSleep(tm int) {
-	time.Sleep(time.Duration(tm) * time.Millisecond)
-}
-
-// Sleep time.Sleep tm second
-func Sleep(tm int) {
-	time.Sleep(time.Duration(tm) * time.Second)
-}
-
+// Deprecated: use the MilliSleep(),
+//
 // MicroSleep time C.microsleep(tm)
 func MicroSleep(tm float64) {
 	C.microsleep(C.double(tm))
@@ -188,6 +126,11 @@ func PadHex(hex C.MMRGBHex) string {
 	return gcolor
 }
 
+// PadHexs trans CHex to string
+func PadHexs(hex CHex) string {
+	return PadHex(C.MMRGBHex(hex))
+}
+
 // HexToRgb trans hex to rgb
 func HexToRgb(hex uint32) *C.uint8_t {
 	return C.color_hex_to_rgb(C.uint32_t(hex))
@@ -199,52 +142,74 @@ func RgbToHex(r, g, b uint8) C.uint32_t {
 }
 
 // GetPxColor get the pixel color return C.MMRGBHex
-func GetPxColor(x, y int) C.MMRGBHex {
+func GetPxColor(x, y int, displayId ...int) C.MMRGBHex {
 	cx := C.int32_t(x)
 	cy := C.int32_t(y)
 
-	color := C.get_px_color(cx, cy)
+	display := displayIdx(displayId...)
+	color := C.get_px_color(cx, cy, C.int32_t(display))
 	return color
 }
 
 // GetPixelColor get the pixel color return string
-func GetPixelColor(x, y int) string {
-	return PadHex(GetPxColor(x, y))
+func GetPixelColor(x, y int, displayId ...int) string {
+	return PadHex(GetPxColor(x, y, displayId...))
 }
 
-// GetMouseColor get the mouse pos's color
-func GetMouseColor() string {
-	x, y := GetMousePos()
-	return GetPixelColor(x, y)
+// GetLocationColor get the location pos's color
+func GetLocationColor(displayId ...int) string {
+	x, y := Location()
+	return GetPixelColor(x, y, displayId...)
+}
+
+// IsMain is main display
+func IsMain(displayId int) bool {
+	return displayId == GetMainId()
+}
+
+func displayIdx(id ...int) int {
+	display := -1
+	if DisplayID != -1 {
+		display = DisplayID
+	}
+	if len(id) > 0 {
+		display = id[0]
+	}
+
+	return display
+}
+
+func getNumDisplays() int {
+	return int(C.get_num_displays())
+}
+
+// GetHWNDByPid get the hwnd by pid
+func GetHWNDByPid(pid int) int {
+	return int(C.get_hwnd_by_pid(C.uintptr(pid)))
 }
 
 // SysScale get the sys scale
-func SysScale() float64 {
-	s := C.sys_scale()
+func SysScale(displayId ...int) float64 {
+	display := displayIdx(displayId...)
+	s := C.sys_scale(C.int32_t(display))
 	return float64(s)
 }
 
-// Scaled get the screen scaled size
-func Scaled(x int) int {
-	f := ScaleF()
+// Scaled get the screen scaled return scale size
+func Scaled(x int, displayId ...int) int {
+	f := ScaleF(displayId...)
 	return Scaled0(x, f)
-}
-
-// Scaled0 return int(x * f)
-func Scaled0(x int, f float64) int {
-	return int(float64(x) * f)
 }
 
 // GetScreenSize get the screen size
 func GetScreenSize() (int, int) {
-	size := C.get_screen_size()
-	// fmt.Println("...", size, size.width)
+	size := C.getMainDisplaySize()
 	return int(size.w), int(size.h)
 }
 
 // GetScreenRect get the screen rect (x, y, w, h)
 func GetScreenRect(displayId ...int) Rect {
-	display := 0
+	display := -1
 	if len(displayId) > 0 {
 		display = displayId[0]
 	}
@@ -254,6 +219,7 @@ func GetScreenRect(displayId ...int) Rect {
 		int(rect.size.w), int(rect.size.h)
 
 	if runtime.GOOS == "windows" {
+		// f := ScaleF(displayId...)
 		f := ScaleF()
 		x, y, w, h = Scaled0(x, f), Scaled0(y, f), Scaled0(w, f), Scaled0(h, f)
 	}
@@ -264,9 +230,9 @@ func GetScreenRect(displayId ...int) Rect {
 }
 
 // GetScaleSize get the screen scale size
-func GetScaleSize() (int, int) {
+func GetScaleSize(displayId ...int) (int, int) {
 	x, y := GetScreenSize()
-	f := ScaleF()
+	f := ScaleF(displayId...)
 	return int(float64(x) * f), int(float64(y) * f)
 }
 
@@ -274,8 +240,16 @@ func GetScaleSize() (int, int) {
 // use `defer robotgo.FreeBitmap(bitmap)` to free the bitmap
 //
 // robotgo.CaptureScreen(x, y, w, h int)
-func CaptureScreen(args ...int) C.MMBitmapRef {
+func CaptureScreen(args ...int) CBitmap {
 	var x, y, w, h C.int32_t
+	displayId := -1
+	if DisplayID != -1 {
+		displayId = DisplayID
+	}
+
+	if len(args) > 4 {
+		displayId = args[4]
+	}
 
 	if len(args) > 3 {
 		x = C.int32_t(args[0])
@@ -284,42 +258,74 @@ func CaptureScreen(args ...int) C.MMBitmapRef {
 		h = C.int32_t(args[3])
 	} else {
 		// Get the main screen rect.
-		rect := GetScreenRect()
+		rect := GetScreenRect(displayId)
+		if runtime.GOOS == "windows" {
+			x = C.int32_t(rect.X)
+			y = C.int32_t(rect.Y)
+		}
 
-		x = C.int32_t(rect.X)
-		y = C.int32_t(rect.Y)
 		w = C.int32_t(rect.W)
 		h = C.int32_t(rect.H)
 	}
 
-	bit := C.capture_screen(x, y, w, h)
-	return bit
+	isPid := 0
+	if NotPid || len(args) > 5 {
+		isPid = 1
+	}
+
+	bit := C.capture_screen(x, y, w, h, C.int32_t(displayId), C.int8_t(isPid))
+	return CBitmap(bit)
 }
 
-// GoCaptureScreen capture the screen and return bitmap(go struct)
-func GoCaptureScreen(args ...int) Bitmap {
+// CaptureGo capture the screen and return bitmap(go struct)
+func CaptureGo(args ...int) Bitmap {
 	bit := CaptureScreen(args...)
 	defer FreeBitmap(bit)
 
 	return ToBitmap(bit)
 }
 
-// CaptureImg capture the screen and return image.Image
-func CaptureImg(args ...int) image.Image {
+// CaptureImg capture the screen and return image.Image, error
+func CaptureImg(args ...int) (image.Image, error) {
 	bit := CaptureScreen(args...)
+	if unsafe.Pointer(bit) == nil {
+		return nil, errors.New("Capture image not found.")
+	}
 	defer FreeBitmap(bit)
 
-	return ToImage(bit)
+	return ToImage(bit), nil
+}
+
+// SaveCapture capture screen and save the screenshot to image
+func SaveCapture(path string, args ...int) error {
+	img, err := CaptureImg(args...)
+	if err != nil {
+		return err
+	}
+
+	return Save(img, path)
 }
 
 // FreeBitmap free and dealloc the C bitmap
-func FreeBitmap(bitmap C.MMBitmapRef) {
+func FreeBitmap(bitmap CBitmap) {
 	// C.destroyMMBitmap(bitmap)
-	C.bitmap_dealloc(bitmap)
+	C.bitmap_dealloc(C.MMBitmapRef(bitmap))
+}
+
+// FreeBitmapArr free and dealloc the C bitmap array
+func FreeBitmapArr(bit ...CBitmap) {
+	for i := 0; i < len(bit); i++ {
+		FreeBitmap(bit[i])
+	}
+}
+
+// ToMMBitmapRef trans CBitmap to C.MMBitmapRef
+func ToMMBitmapRef(bit CBitmap) C.MMBitmapRef {
+	return C.MMBitmapRef(bit)
 }
 
 // ToBitmap trans C.MMBitmapRef to Bitmap
-func ToBitmap(bit C.MMBitmapRef) Bitmap {
+func ToBitmap(bit CBitmap) Bitmap {
 	bitmap := Bitmap{
 		ImgBuf:        (*uint8)(bit.imageBuffer),
 		Width:         int(bit.width),
@@ -332,26 +338,49 @@ func ToBitmap(bit C.MMBitmapRef) Bitmap {
 	return bitmap
 }
 
+// ToCBitmap trans Bitmap to C.MMBitmapRef
+func ToCBitmap(bit Bitmap) CBitmap {
+	cbitmap := C.createMMBitmap_c(
+		(*C.uint8_t)(bit.ImgBuf),
+		C.int32_t(bit.Width),
+		C.int32_t(bit.Height),
+		C.int32_t(bit.Bytewidth),
+		C.uint8_t(bit.BitsPixel),
+		C.uint8_t(bit.BytesPerPixel),
+	)
+
+	return CBitmap(cbitmap)
+}
+
 // ToImage convert C.MMBitmapRef to standard image.Image
-func ToImage(bit C.MMBitmapRef) image.Image {
+func ToImage(bit CBitmap) image.Image {
 	return ToRGBA(bit)
 }
 
 // ToRGBA convert C.MMBitmapRef to standard image.RGBA
-func ToRGBA(bit C.MMBitmapRef) *image.RGBA {
+func ToRGBA(bit CBitmap) *image.RGBA {
 	bmp1 := ToBitmap(bit)
 	return ToRGBAGo(bmp1)
 }
 
+// ImgToCBitmap trans image.Image to CBitmap
+func ImgToCBitmap(img image.Image) CBitmap {
+	return ToCBitmap(ImgToBitmap(img))
+}
+
+// ByteToCBitmap trans []byte to CBitmap
+func ByteToCBitmap(by []byte) CBitmap {
+	img, _ := ByteToImg(by)
+	return ImgToCBitmap(img)
+}
+
 // SetXDisplayName set XDisplay name (Linux)
-func SetXDisplayName(name string) string {
+func SetXDisplayName(name string) error {
 	cname := C.CString(name)
 	str := C.set_XDisplay_name(cname)
-
-	gstr := C.GoString(str)
 	C.free(unsafe.Pointer(cname))
 
-	return gstr
+	return toErr(str)
 }
 
 // GetXDisplayName get XDisplay name (Linux)
@@ -363,57 +392,16 @@ func GetXDisplayName() string {
 	return gname
 }
 
+// CloseMainDisplay close the main X11 display
+func CloseMainDisplay() {
+	C.close_main_display()
+}
+
 // Deprecated: use the ScaledF(),
 //
 // ScaleX get the primary display horizontal DPI scale factor, drop
 func ScaleX() int {
-	return int(C.scale_x())
-}
-
-// Deprecated: use the ScaledF(),
-//
-// ScaleY get primary display vertical DPI scale factor, drop
-func ScaleY() int {
-	return int(C.scale_y())
-}
-
-// Deprecated: use the ScaledF(),
-//
-// Scale get the screen scale (only windows old), drop
-func Scale() int {
-	dpi := map[int]int{
-		0: 100,
-		// DPI Scaling Level
-		96:  100,
-		120: 125,
-		144: 150,
-		168: 175,
-		192: 200,
-		216: 225,
-		// Custom DPI
-		240: 250,
-		288: 300,
-		384: 400,
-		480: 500,
-	}
-
-	x := ScaleX()
-	return dpi[x]
-}
-
-// Deprecated: use the ScaledF(),
-//
-// Scale0 return ScaleX() / 0.96, drop
-func Scale0() int {
-	return int(float64(ScaleX()) / 0.96)
-}
-
-// Deprecated: use the ScaledF(),
-//
-// Mul mul the scale, drop
-func Mul(x int) int {
-	s := Scale()
-	return x * s / 100
+	return int(C.scaleX())
 }
 
 /*
@@ -445,41 +433,48 @@ func CheckMouse(btn string) C.MMMouseButton {
 	return C.LEFT_BUTTON
 }
 
-// Deprecated: use the Move(),
-//
-// MoveMouse move the mouse
-func MoveMouse(x, y int) {
-	Move(x, y)
+// MouseButtonString converts a C.MMMouseButton to a readable name.
+func MouseButtonString(btn C.MMMouseButton) string {
+	m1 := map[C.MMMouseButton]string{
+		C.LEFT_BUTTON:   "left",
+		C.CENTER_BUTTON: "center",
+		C.RIGHT_BUTTON:  "right",
+		C.WheelDown:     "wheelDown",
+		C.WheelUp:       "wheelUp",
+		C.WheelLeft:     "wheelLeft",
+		C.WheelRight:    "wheelRight",
+	}
+	if v, ok := m1[btn]; ok {
+		return v
+	}
+
+	return fmt.Sprintf("button%d", btn)
+}
+
+// MoveScale calculate the os scale factor x, y
+func MoveScale(x, y int, displayId ...int) (int, int) {
+	if Scale || runtime.GOOS == "windows" {
+		f := ScaleF()
+		x, y = Scaled1(x, f), Scaled1(y, f)
+	}
+
+	return x, y
 }
 
 // Move move the mouse to (x, y)
 //
 // Examples:
-// 	robotgo.MouseSleep = 100  // 100 millisecond
-// 	robotgo.Move(10, 10)
-func Move(x, y int) {
-	// if runtime.GOOS == "windows" {
-	// 	f := ScaleF()
-	// 	x, y = Scaled0(x, f), Scaled0(y, f)
-	// }
+//
+//	robotgo.MouseSleep = 100  // 100 millisecond
+//	robotgo.Move(10, 10)
+func Move(x, y int, displayId ...int) {
+	x, y = MoveScale(x, y, displayId...)
 
 	cx := C.int32_t(x)
 	cy := C.int32_t(y)
-	C.move_mouse(cx, cy)
+	C.moveMouse(C.MMPointInt32Make(cx, cy))
 
 	MilliSleep(MouseSleep)
-}
-
-// Deprecated: use the DragSmooth(),
-//
-// DragMouse drag the mouse to (x, y),
-// It's same with the DragSmooth() now
-func DragMouse(x, y int, args ...interface{}) {
-	Toggle("left")
-	MilliSleep(50)
-	// Drag(x, y, args...)
-	MoveSmooth(x, y, args...)
-	Toggle("left", "up")
 }
 
 // Deprecated: use the DragSmooth(),
@@ -487,6 +482,8 @@ func DragMouse(x, y int, args ...interface{}) {
 // Drag drag the mouse to (x, y),
 // It's not valid now, use the DragSmooth()
 func Drag(x, y int, args ...string) {
+	x, y = MoveScale(x, y)
+
 	var button C.MMMouseButton = C.LEFT_BUTTON
 	cx := C.int32_t(x)
 	cy := C.int32_t(y)
@@ -495,48 +492,30 @@ func Drag(x, y int, args ...string) {
 		button = CheckMouse(args[0])
 	}
 
-	C.drag_mouse(cx, cy, button)
+	C.dragMouse(C.MMPointInt32Make(cx, cy), button)
 	MilliSleep(MouseSleep)
 }
 
 // DragSmooth drag the mouse like smooth to (x, y)
 //
 // Examples:
+//
 //	robotgo.DragSmooth(10, 10)
 func DragSmooth(x, y int, args ...interface{}) {
 	Toggle("left")
 	MilliSleep(50)
-	MoveSmooth(x, y, args...)
+	smoothMove(x, y, true, args...)
 	Toggle("left", "up")
 }
 
-// Deprecated: use the MoveSmooth(),
-//
-// MoveMouseSmooth move the mouse smooth,
-// moves mouse to x, y human like, with the mouse button up.
-func MoveMouseSmooth(x, y int, args ...interface{}) bool {
-	return MoveSmooth(x, y, args...)
-}
-
-// MoveSmooth move the mouse smooth,
-// moves mouse to x, y human like, with the mouse button up.
-//
-// robotgo.MoveSmooth(x, y int, low, high float64, mouseDelay int)
-//
-// Examples:
-//	robotgo.MoveSmooth(10, 10)
-//	robotgo.MoveSmooth(10, 10, 1.0, 2.0)
-func MoveSmooth(x, y int, args ...interface{}) bool {
-	// if runtime.GOOS == "windows" {
-	// 	f := ScaleF()
-	// 	x, y = Scaled0(x, f), Scaled0(y, f)
-	// }
+func smoothMove(x, y int, drag bool, args ...interface{}) bool {
+	x, y = MoveScale(x, y)
 
 	cx := C.int32_t(x)
 	cy := C.int32_t(y)
 
 	var (
-		mouseDelay = 5
+		mouseDelay = 1
 		low        C.double
 		high       C.double
 	)
@@ -553,62 +532,57 @@ func MoveSmooth(x, y int, args ...interface{}) bool {
 		high = 3.0
 	}
 
-	cbool := C.move_mouse_smooth(cx, cy, low, high, C.int(mouseDelay))
-	MilliSleep(MouseSleep)
+	var cbool C.bool
+	if drag {
+		cbool = C.smoothlyDragMouse(C.MMPointInt32Make(cx, cy), low, high, C.LEFT_BUTTON)
+	} else {
+		cbool = C.smoothlyMoveMouse(C.MMPointInt32Make(cx, cy), low, high)
+	}
+	MilliSleep(MouseSleep + mouseDelay)
 
 	return bool(cbool)
 }
 
-// MoveArgs get the mouse relative args
-func MoveArgs(x, y int) (int, int) {
-	mx, my := GetMousePos()
-	mx = mx + x
-	my = my + y
-
-	return mx, my
+// MoveSmooth move the mouse smooth,
+// moves mouse to x, y human like, with the mouse button up.
+//
+// robotgo.MoveSmooth(x, y int, low, high float64, mouseDelay int)
+//
+// Examples:
+//
+//	robotgo.MoveSmooth(10, 10)
+//	robotgo.MoveSmooth(10, 10, 1.0, 2.0)
+func MoveSmooth(x, y int, args ...interface{}) bool {
+	return smoothMove(x, y, false, args...)
 }
 
-// MoveRelative move mouse with relative
-func MoveRelative(x, y int) {
-	Move(MoveArgs(x, y))
-}
-
-// MoveSmoothRelative move mouse smooth with relative
-func MoveSmoothRelative(x, y int, args ...interface{}) {
-	mx, my := MoveArgs(x, y)
-	MoveSmooth(mx, my, args...)
-}
-
-// GetMousePos get the mouse's portion return x, y
-func GetMousePos() (int, int) {
-	pos := C.get_mouse_pos()
+// Location get the mouse location position return x, y
+func Location() (int, int) {
+	pos := C.location()
 	x := int(pos.x)
 	y := int(pos.y)
+
+	if Scale || runtime.GOOS == "windows" {
+		f := ScaleF()
+		x, y = Scaled0(x, f), Scaled0(y, f)
+	}
 
 	return x, y
 }
 
-// Deprecated: use the Click(),
-//
-// MouseClick click the mouse
-//
-// robotgo.MouseClick(button string, double bool)
-func MouseClick(args ...interface{}) {
-	Click(args...)
-}
-
-// Click click the mouse button
+// ClickV1 click the mouse button
 //
 // robotgo.Click(button string, double bool)
 //
 // Examples:
-// 	robotgo.Click() // default is left button
+//
+//	robotgo.Click() // default is left button
 //	robotgo.Click("right")
 //	robotgo.Click("wheelLeft")
-func Click(args ...interface{}) {
+func ClickV1(args ...interface{}) {
 	var (
 		button C.MMMouseButton = C.LEFT_BUTTON
-		double C.bool
+		double bool
 	)
 
 	if len(args) > 0 {
@@ -616,11 +590,129 @@ func Click(args ...interface{}) {
 	}
 
 	if len(args) > 1 {
-		double = C.bool(args[1].(bool))
+		double = args[1].(bool)
 	}
 
-	C.mouse_click(button, double)
+	if !double {
+		C.clickMouse(button)
+	} else {
+		C.doubleClick(button, 2)
+	}
+
 	MilliSleep(MouseSleep)
+}
+
+// Click click the mouse button and return error
+//
+// robotgo.Click(button string, double bool)
+//
+// Examples:
+//
+//	err := robotgo.Click() // default is left button
+//	err := robotgo.Click("right")
+func Click(args ...interface{}) error {
+	var (
+		button C.MMMouseButton = C.LEFT_BUTTON
+		double bool
+		count  int
+	)
+
+	if len(args) > 0 {
+		btn, ok := args[0].(string)
+		if !ok {
+			return errors.New("first argument must be a button string")
+		}
+		button = CheckMouse(btn)
+	}
+
+	if len(args) > 1 {
+		dbl, ok := args[1].(bool)
+		if !ok {
+			return errors.New("second argument must be a bool indicating double click")
+		}
+		double = dbl
+	}
+	if len(args) > 2 {
+		count = args[2].(int)
+	}
+
+	defer MilliSleep(MouseSleep)
+	if !double {
+		if code := C.toggleMouse(true, button); code != 0 {
+			return formatClickError(int(code), button, "down", count)
+		}
+
+		MilliSleep(5)
+		code := C.toggleMouse(false, button)
+		return formatClickError(int(code), button, "up", count)
+	}
+
+	code := C.doubleClick(button, 2)
+	return formatClickError(int(code), button, "double", 2)
+}
+
+// MultiClick performs multiple clicks and returns error
+//
+// robotgo.MultiClick(button string, count int)
+func MultiClick(button string, count int, click ...bool) error {
+	if count < 1 {
+		return nil
+	}
+	defer MilliSleep(MouseSleep)
+
+	if runtime.GOOS == "darwin" && len(click) <= 0 {
+		btn := CheckMouse(button)
+		code := C.doubleClick(btn, C.int(count))
+		return formatClickError(int(code), btn, "down", count)
+	}
+
+	for i := 0; i < count; i++ {
+		if err := Click(button, false, i+1); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func formatClickError(code int, button C.MMMouseButton, stage string, count int) error {
+	if code == 0 {
+		return nil
+	}
+	btnName := MouseButtonString(button)
+	detail := ""
+
+	switch runtime.GOOS {
+	case "windows":
+		if code != 0 {
+			detail = syscall.Errno(code).Error()
+		}
+	case "darwin":
+		cgErrors := map[int]string{
+			0:    "kCGErrorSuccess",
+			1000: "kCGErrorFailure",
+			1001: "kCGErrorIllegalArgument",
+			1002: "kCGErrorInvalidConnection",
+			1003: "kCGErrorInvalidContext",
+			1004: "kCGErrorCannotComplete",
+			1005: "kCGErrorNotImplemented",
+			1006: "kCGErrorRangeCheck",
+			1007: "kCGErrorTypeCheck",
+			1008: "kCGErrorNoCurrentPoint",
+			1010: "kCGErrorInvalidOperation",
+		}
+		if v, ok := cgErrors[code]; ok {
+			detail = v
+		}
+	default:
+		if code == 1 {
+			detail = "XTestFakeButtonEvent returned false"
+		}
+	}
+
+	if detail != "" {
+		return fmt.Errorf("click %s failed (%s, count=%d): %s (code=%d)", stage, btnName, count, detail, code)
+	}
+	return fmt.Errorf("click %s failed (%s, count=%d), code=%d", stage, btnName, count, code)
 }
 
 // MoveClick move and click the mouse
@@ -628,6 +720,7 @@ func Click(args ...interface{}) {
 // robotgo.MoveClick(x, y int, button string, double bool)
 //
 // Examples:
+//
 //	robotgo.MouseSleep = 100
 //	robotgo.MoveClick(10, 10)
 func MoveClick(x, y int, args ...interface{}) {
@@ -636,74 +729,44 @@ func MoveClick(x, y int, args ...interface{}) {
 	Click(args...)
 }
 
-// MovesClick move smooth and click the mouse
-//
-// use the `robotgo.MouseSleep = 100`
-func MovesClick(x, y int, args ...interface{}) {
-	MoveSmooth(x, y)
-	MilliSleep(50)
-	Click(args...)
-}
-
 // Toggle toggle the mouse, support button:
-//	"left", "center", "right",
-//  "wheelDown", "wheelUp", "wheelLeft", "wheelRight"
+//
+//		"left", "center", "right",
+//	 "wheelDown", "wheelUp", "wheelLeft", "wheelRight"
 //
 // Examples:
+//
 //	robotgo.Toggle("left") // default is down
 //	robotgo.Toggle("left", "up")
-func Toggle(key ...string) int {
+func Toggle(key ...interface{}) error {
 	var button C.MMMouseButton = C.LEFT_BUTTON
 	if len(key) > 0 {
-		button = CheckMouse(key[0])
-	}
-	down := C.CString("down")
-	if len(key) > 1 {
-		down = C.CString(key[1])
+		button = CheckMouse(key[0].(string))
 	}
 
-	i := C.mouse_toggle(down, button)
-	C.free(unsafe.Pointer(down))
-	MilliSleep(MouseSleep)
-	return int(i)
+	down := true
+	if len(key) > 1 && key[1].(string) == "up" {
+		down = false
+	}
+
+	code := C.toggleMouse(C.bool(down), button)
+	if len(key) > 2 {
+		MilliSleep(MouseSleep)
+	}
+	return formatClickError(int(code), button, "down", 1)
 }
 
-// Deprecated: use the Toggle(),
-//
-// MouseToggle toggle the mouse
-//
-// Examples:
-// 	robotgo.MouseToggle("down", "right")
-//	robotgo.MouseToggle("up", "right")
-func MouseToggle(togKey string, args ...interface{}) int {
-	var button C.MMMouseButton = C.LEFT_BUTTON
-
-	if len(args) > 0 {
-		button = CheckMouse(args[0].(string))
-	}
-
-	down := C.CString(togKey)
-	i := C.mouse_toggle(down, button)
-
-	C.free(unsafe.Pointer(down))
-	MilliSleep(MouseSleep)
-	return int(i)
+// MouseDown send mouse down event
+func MouseDown(key ...interface{}) error {
+	return Toggle(key...)
 }
 
-// Deprecated: use the Scroll(),
-//
-// ScrollMouse scroll the mouse to (x, "up")
-//
-// Examples:
-//	robotgo.ScrollMouse(10, "down")
-//	robotgo.ScrollMouse(10, "up")
-func ScrollMouse(x int, direction string) {
-	cx := C.size_t(x)
-	cy := C.CString(direction)
-	C.scroll_mouse(cx, cy)
-
-	C.free(unsafe.Pointer(cy))
-	MilliSleep(MouseSleep)
+// MouseUp send mouse up event
+func MouseUp(key ...interface{}) error {
+	if len(key) <= 0 {
+		key = append(key, "left")
+	}
+	return Toggle(append(key, "up")...)
 }
 
 // Scroll scroll the mouse to (x, y)
@@ -711,6 +774,7 @@ func ScrollMouse(x int, direction string) {
 // robotgo.Scroll(x, y, msDelay int)
 //
 // Examples:
+//
 //	robotgo.Scroll(10, 10)
 func Scroll(x, y int, args ...int) {
 	var msDelay = 10
@@ -720,10 +784,38 @@ func Scroll(x, y int, args ...int) {
 
 	cx := C.int(x)
 	cy := C.int(y)
-	cz := C.int(msDelay)
 
-	C.scroll(cx, cy, cz)
-	MilliSleep(MouseSleep)
+	C.scrollMouseXY(cx, cy)
+	MilliSleep(MouseSleep + msDelay)
+}
+
+// ScrollDir scroll the mouse with direction to (x, "up")
+// supported: "up", "down", "left", "right"
+//
+// Examples:
+//
+//	robotgo.ScrollDir(10, "down")
+//	robotgo.ScrollDir(10, "up")
+func ScrollDir(x int, direction ...interface{}) {
+	d := "down"
+	if len(direction) > 0 {
+		d = direction[0].(string)
+	}
+
+	if d == "down" {
+		Scroll(0, -x)
+	}
+	if d == "up" {
+		Scroll(0, x)
+	}
+
+	if d == "left" {
+		Scroll(x, 0)
+	}
+	if d == "right" {
+		Scroll(-x, 0)
+	}
+	// MilliSleep(MouseSleep)
 }
 
 // ScrollSmooth scroll the mouse smooth,
@@ -732,6 +824,7 @@ func Scroll(x, y int, args ...int) {
 // robotgo.ScrollSmooth(toy, num, sleep, tox)
 //
 // Examples:
+//
 //	robotgo.ScrollSmooth(-10)
 //	robotgo.ScrollSmooth(-10, 6, 200, -10)
 func ScrollSmooth(to int, args ...int) {
@@ -760,398 +853,6 @@ func ScrollSmooth(to int, args ...int) {
 	MilliSleep(MouseSleep)
 }
 
-// ScrollRelative scroll mouse with relative
-//
-// Examples:
-//	robotgo.ScrollRelative(10, 10)
-func ScrollRelative(x, y int, args ...int) {
-	mx, my := MoveArgs(x, y)
-	Scroll(mx, my, args...)
-}
-
-// SetMouseDelay set mouse delay
-func SetMouseDelay(delay int) {
-	cdelay := C.size_t(delay)
-	C.set_mouse_delay(cdelay)
-}
-
-/*
- __  ___  ___________    ____ .______     ______        ___      .______       _______
-|  |/  / |   ____\   \  /   / |   _  \   /  __  \      /   \     |   _  \     |       \
-|  '  /  |  |__   \   \/   /  |  |_)  | |  |  |  |    /  ^  \    |  |_)  |    |  .--.  |
-|    <   |   __|   \_    _/   |   _  <  |  |  |  |   /  /_\  \   |      /     |  |  |  |
-|  .  \  |  |____    |  |     |  |_)  | |  `--'  |  /  _____  \  |  |\  \----.|  '--'  |
-|__|\__\ |_______|   |__|     |______/   \______/  /__/     \__\ | _| `._____||_______/
-
-*/
-
-// KeyTap tap the keyboard code;
-//
-// See keys:
-//	https://github.com/go-vgo/robotgo/blob/master/docs/keys.md
-//
-// Examples:
-//	robotgo.KeySleep = 100 // 100 millisecond
-//	robotgo.KeyTap("a")
-//	robotgo.KeyTap("i", "alt", "command")
-//
-//	arr := []string{"alt", "command"}
-//	robotgo.KeyTap("i", arr)
-//
-func KeyTap(tapKey string, args ...interface{}) string {
-	var (
-		akey     string
-		keyT     = "null"
-		keyArr   []string
-		num      int
-		keyDelay int // This is legacy and drop option, use robotgo.KeySleep
-	)
-
-	if _, ok := Special[tapKey]; ok {
-		tapKey = Special[tapKey]
-		if len(args) <= 0 {
-			args = append(args, "shift")
-		}
-	}
-
-	// var ckeyArr []*C.char
-	ckeyArr := make([](*C.char), 0)
-	// zkey := C.CString(args[0])
-	zkey := C.CString(tapKey)
-	defer C.free(unsafe.Pointer(zkey))
-
-	// args not key delay
-	if len(args) > 2 && (reflect.TypeOf(args[2]) != reflect.TypeOf(num)) {
-		num = len(args)
-		for i := 0; i < num; i++ {
-			s := args[i].(string)
-			ckeyArr = append(ckeyArr, (*C.char)(unsafe.Pointer(C.CString(s))))
-		}
-
-		str := C.key_Taps(zkey,
-			(**C.char)(unsafe.Pointer(&ckeyArr[0])), C.int(num), 0)
-		MilliSleep(KeySleep)
-		return C.GoString(str)
-	}
-
-	// key delay
-	if len(args) > 0 {
-		if reflect.TypeOf(args[0]) == reflect.TypeOf(keyArr) {
-
-			keyArr = args[0].([]string)
-			num = len(keyArr)
-			for i := 0; i < num; i++ {
-				ckeyArr = append(ckeyArr, (*C.char)(unsafe.Pointer(C.CString(keyArr[i]))))
-			}
-
-			if len(args) > 1 {
-				keyDelay = args[1].(int)
-			}
-		} else {
-			akey = args[0].(string)
-
-			if len(args) > 1 {
-				if reflect.TypeOf(args[1]) == reflect.TypeOf(akey) {
-					keyT = args[1].(string)
-					if len(args) > 2 {
-						keyDelay = args[2].(int)
-					}
-				} else {
-					keyDelay = args[1].(int)
-				}
-			}
-		}
-
-	} else {
-		akey = "null"
-		keyArr = []string{"null"}
-	}
-
-	if akey == "" && len(keyArr) != 0 {
-		str := C.key_Taps(zkey, (**C.char)(unsafe.Pointer(&ckeyArr[0])),
-			C.int(num), C.int(keyDelay))
-
-		MilliSleep(KeySleep)
-		return C.GoString(str)
-	}
-
-	amod := C.CString(akey)
-	amodt := C.CString(keyT)
-	str := C.key_tap(zkey, amod, amodt, C.int(keyDelay))
-
-	C.free(unsafe.Pointer(amod))
-	C.free(unsafe.Pointer(amodt))
-
-	MilliSleep(KeySleep)
-	return C.GoString(str)
-}
-
-// KeyToggle toggle the keyboard, if there not have args default is "down"
-//
-// See keys:
-//	https://github.com/go-vgo/robotgo/blob/master/docs/keys.md
-//
-// Examples:
-//	robotgo.KeyToggle("a")
-//	robotgo.KeyToggle("a", "up")
-//
-//	robotgo.KeyToggle("a", "up", "alt", "cmd")
-//
-func KeyToggle(key string, args ...string) string {
-	if len(args) <= 0 {
-		args = append(args, "down")
-	}
-
-	if _, ok := Special[key]; ok {
-		key = Special[key]
-		if len(args) <= 1 {
-			args = append(args, "shift")
-		}
-	}
-
-	ckey := C.CString(key)
-	defer C.free(unsafe.Pointer(ckey))
-
-	ckeyArr := make([](*C.char), 0)
-	if len(args) > 3 {
-		num := len(args)
-		for i := 0; i < num; i++ {
-			ckeyArr = append(ckeyArr, (*C.char)(unsafe.Pointer(C.CString(args[i]))))
-		}
-
-		str := C.key_Toggles(ckey, (**C.char)(unsafe.Pointer(&ckeyArr[0])), C.int(num))
-		MilliSleep(KeySleep)
-		return C.GoString(str)
-	}
-
-	// use key_toggle()
-	var (
-		down, mKey, mKeyT = "null", "null", "null"
-		// keyDelay = 10
-	)
-
-	if len(args) > 0 {
-		down = args[0]
-
-		if len(args) > 1 {
-			mKey = args[1]
-			if len(args) > 2 {
-				mKeyT = args[2]
-			}
-		}
-	}
-
-	cdown := C.CString(down)
-	cmKey := C.CString(mKey)
-	cmKeyT := C.CString(mKeyT)
-
-	str := C.key_toggle(ckey, cdown, cmKey, cmKeyT)
-	// str := C.key_Toggle(ckey, cdown, cmKey, cmKeyT, C.int(keyDelay))
-
-	C.free(unsafe.Pointer(cdown))
-	C.free(unsafe.Pointer(cmKey))
-	C.free(unsafe.Pointer(cmKeyT))
-
-	MilliSleep(KeySleep)
-	return C.GoString(str)
-}
-
-// KeyPress press key string
-func KeyPress(key string) {
-	KeyDown(key)
-	Sleep(1 + rand.Intn(3))
-	KeyUp(key)
-}
-
-// KeyDown press down a key
-func KeyDown(key string) {
-	KeyToggle(key, "down")
-}
-
-// KeyUp press up a key
-func KeyUp(key string) {
-	KeyToggle(key, "up")
-}
-
-// ReadAll read string from clipboard
-func ReadAll() (string, error) {
-	return clipboard.ReadAll()
-}
-
-// WriteAll write string to clipboard
-func WriteAll(text string) error {
-	return clipboard.WriteAll(text)
-}
-
-// CharCodeAt char code at utf-8
-func CharCodeAt(s string, n int) rune {
-	i := 0
-	for _, r := range s {
-		if i == n {
-			return r
-		}
-		i++
-	}
-
-	return 0
-}
-
-// UnicodeType tap uint32 unicode
-func UnicodeType(str uint32) {
-	cstr := C.uint(str)
-	C.unicodeType(cstr)
-}
-
-// ToUC trans string to unicode []string
-func ToUC(text string) []string {
-	var uc []string
-
-	for _, r := range text {
-		textQ := strconv.QuoteToASCII(string(r))
-		textUnQ := textQ[1 : len(textQ)-1]
-
-		st := strings.Replace(textUnQ, "\\u", "U", -1)
-		if st == "\\\\" {
-			st = "\\"
-		}
-		if st == `\"` {
-			st = `"`
-		}
-		uc = append(uc, st)
-	}
-
-	return uc
-}
-
-func inputUTF(str string) {
-	cstr := C.CString(str)
-	C.input_utf(cstr)
-
-	C.free(unsafe.Pointer(cstr))
-}
-
-// TypeStr send a string, support UTF-8
-//
-// robotgo.TypeStr(string: The string to send, float64: microsleep time, x11 option)
-//
-// Examples:
-//	robotgo.TypeStr("abc@123, hi, こんにちは")
-//
-func TypeStr(str string, args ...float64) {
-	var tm, tm1 = 0.0, 7.0
-
-	if len(args) > 0 {
-		tm = args[0]
-	}
-	if len(args) > 1 {
-		tm1 = args[1]
-	}
-
-	if runtime.GOOS == "linux" {
-		strUc := ToUC(str)
-		for i := 0; i < len(strUc); i++ {
-			ru := []rune(strUc[i])
-			if len(ru) <= 1 {
-				ustr := uint32(CharCodeAt(strUc[i], 0))
-				UnicodeType(ustr)
-			} else {
-				inputUTF(strUc[i])
-				MicroSleep(tm1)
-			}
-
-			MicroSleep(tm)
-		}
-
-		return
-	}
-
-	for i := 0; i < len([]rune(str)); i++ {
-		ustr := uint32(CharCodeAt(str, i))
-		UnicodeType(ustr)
-
-		// if len(args) > 0 {
-		MicroSleep(tm)
-		// }
-	}
-	MilliSleep(KeySleep)
-}
-
-// PasteStr paste a string, support UTF-8,
-// write the string to clipboard and tap `cmd + v`
-func PasteStr(str string) string {
-	err := clipboard.WriteAll(str)
-	if err != nil {
-		return fmt.Sprint(err)
-	}
-
-	if runtime.GOOS == "darwin" {
-		return KeyTap("v", "command")
-	}
-
-	return KeyTap("v", "control")
-}
-
-// Deprecated: use the TypeStr(),
-//
-// TypeString send a string, support unicode(no linux support)
-// TypeStr(string: The string to send), Wno-deprecated
-//
-// This function will be removed in version v1.0.0
-func TypeString(str string, delay ...int) {
-	tt.Drop("TypeString", "TypeStr")
-	var cdelay C.size_t
-	cstr := C.CString(str)
-	if len(delay) > 0 {
-		cdelay = C.size_t(delay[0])
-	}
-
-	C.type_string_delayed(cstr, cdelay)
-
-	C.free(unsafe.Pointer(cstr))
-}
-
-// TypeStrDelay type string delayed
-func TypeStrDelay(str string, delay int) {
-	TypeStr(str)
-	Sleep(delay)
-}
-
-// Deprecated: use the TypeStr(),
-//
-// TypeStringDelayed type string delayed, Wno-deprecated
-//
-// This function will be removed in version v1.0.0
-func TypeStringDelayed(str string, delay int) {
-	tt.Drop("TypeStringDelayed", "TypeStrDelay")
-	TypeStrDelay(str, delay)
-}
-
-// SetKeyDelay set keyboard delay
-func SetKeyDelay(delay int) {
-	C.set_keyboard_delay(C.size_t(delay))
-}
-
-// Deprecated: use the SetKeyDelay(),
-//
-// SetKeyboardDelay set keyboard delay, Wno-deprecated,
-//
-// This function will be removed in version v1.0.0
-func SetKeyboardDelay(delay int) {
-	tt.Drop("SetKeyboardDelay", "SetKeyDelay")
-	SetKeyDelay(delay)
-}
-
-// SetDelay set the key and mouse delay
-func SetDelay(d ...int) {
-	v := 10
-	if len(d) > 0 {
-		v = d[0]
-	}
-
-	SetMouseDelay(v)
-	SetKeyDelay(v)
-}
-
 /*
 ____    __    ____  __  .__   __.  _______   ______   ____    __    ____
 \   \  /  \  /   / |  | |  \ |  | |       \ /  __  \  \   \  /  \  /   /
@@ -1162,23 +863,13 @@ ____    __    ____  __  .__   __.  _______   ______   ____    __    ____
 
 */
 
-// ShowAlert show a alert window
-// Displays alert with the attributes.
-// If cancel button is not given, only the default button is displayed
-//
-// Examples:
-//	robotgo.ShowAlert("hi", "window", "ok", "cancel")
-func ShowAlert(title, msg string, args ...string) bool {
+func alertArgs(args ...string) (string, string) {
 	var (
-		// title         string
-		// msg           string
 		defaultBtn = "Ok"
 		cancelBtn  = "Cancel"
 	)
 
 	if len(args) > 0 {
-		// title = args[0]
-		// msg = args[1]
 		defaultBtn = args[0]
 	}
 
@@ -1186,12 +877,18 @@ func ShowAlert(title, msg string, args ...string) bool {
 		cancelBtn = args[1]
 	}
 
+	return defaultBtn, cancelBtn
+}
+
+func showAlert(title, msg string, args ...string) bool {
+	defaultBtn, cancelBtn := alertArgs(args...)
+
 	cTitle := C.CString(title)
 	cMsg := C.CString(msg)
 	defaultButton := C.CString(defaultBtn)
 	cancelButton := C.CString(cancelBtn)
 
-	cbool := C.show_alert(cTitle, cMsg, defaultButton, cancelButton)
+	cbool := C.showAlert(cTitle, cMsg, defaultButton, cancelButton)
 	ibool := int(cbool)
 
 	C.free(unsafe.Pointer(cTitle))
@@ -1206,98 +903,128 @@ func ShowAlert(title, msg string, args ...string) bool {
 func IsValid() bool {
 	abool := C.is_valid()
 	gbool := bool(abool)
-	// fmt.Println("bool---------", gbool)
 	return gbool
 }
 
 // SetActive set the window active
-func SetActive(win C.MData) {
+func SetActive(win Handle) {
+	SetActiveC(C.MData(win))
+}
+
+// SetActiveC set the window active
+func SetActiveC(win C.MData) {
 	C.set_active(win)
 }
 
 // GetActive get the active window
-func GetActive() C.MData {
+func GetActive() Handle {
+	return Handle(GetActiveC())
+}
+
+// GetActiveC get the active window
+func GetActiveC() C.MData {
 	mdata := C.get_active()
 	// fmt.Println("active----", mdata)
 	return mdata
 }
 
 // MinWindow set the window min
-func MinWindow(pid int32, args ...interface{}) {
+func MinWindow(pid int, args ...interface{}) {
 	var (
 		state = true
-		hwnd  int
+		isPid int
 	)
 
 	if len(args) > 0 {
 		state = args[0].(bool)
 	}
-	if len(args) > 1 {
-		hwnd = args[1].(int)
+	if len(args) > 1 || NotPid {
+		isPid = 1
 	}
 
-	C.min_window(C.uintptr(pid), C.bool(state), C.uintptr(hwnd))
+	C.min_window(C.uintptr(pid), C.bool(state), C.int8_t(isPid))
 }
 
 // MaxWindow set the window max
-func MaxWindow(pid int32, args ...interface{}) {
+func MaxWindow(pid int, args ...interface{}) {
 	var (
 		state = true
-		hwnd  int
+		isPid int
 	)
 
 	if len(args) > 0 {
 		state = args[0].(bool)
 	}
-	if len(args) > 1 {
-		hwnd = args[1].(int)
+	if len(args) > 1 || NotPid {
+		isPid = 1
 	}
 
-	C.max_window(C.uintptr(pid), C.bool(state), C.uintptr(hwnd))
+	C.max_window(C.uintptr(pid), C.bool(state), C.int8_t(isPid))
 }
 
 // CloseWindow close the window
-func CloseWindow(args ...int32) {
+func CloseWindow(args ...int) {
 	if len(args) <= 0 {
 		C.close_main_window()
 		return
 	}
 
-	var hwnd, isHwnd int32
+	var pid, isPid int
 	if len(args) > 0 {
-		hwnd = args[0]
+		pid = args[0]
 	}
-	if len(args) > 1 {
-		isHwnd = args[1]
+	if len(args) > 1 || NotPid {
+		isPid = 1
 	}
 
-	C.close_window(C.uintptr(hwnd), C.uintptr(isHwnd))
+	C.close_window_by_PId(C.uintptr(pid), C.int8_t(isPid))
 }
 
 // SetHandle set the window handle
 func SetHandle(hwnd int) {
 	chwnd := C.uintptr(hwnd)
-	C.set_handle(chwnd)
+	C.setHandle(chwnd)
 }
 
 // SetHandlePid set the window handle by pid
-func SetHandlePid(pid int32, args ...int32) {
-	var isHwnd int32
-	if len(args) > 0 {
-		isHwnd = args[0]
+func SetHandlePid(pid int, args ...int) {
+	var isPid int
+	if len(args) > 0 || NotPid {
+		isPid = 1
 	}
 
-	C.set_handle_pid_mData(C.uintptr(pid), C.uintptr(isHwnd))
+	C.set_handle_pid_mData(C.uintptr(pid), C.int8_t(isPid))
 }
 
-// GetHandPid get handle mdata by pid
-func GetHandPid(pid int32, args ...int32) C.MData {
-	var isHwnd int32
+// GetHandById get handle mdata by id
+func GetHandById(id int, args ...int) Handle {
+	isPid := 1
 	if len(args) > 0 {
-		isHwnd = args[0]
+		isPid = args[0]
+	}
+	return GetHandByPid(id, isPid)
+}
+
+// GetHandByPid get handle mdata by pid
+func GetHandByPid(pid int, args ...int) Handle {
+	return Handle(GetHandByPidC(pid, args...))
+}
+
+// Deprecated: use the GetHandByPid(),
+//
+// GetHandPid get handle mdata by pid
+func GetHandPid(pid int, args ...int) Handle {
+	return GetHandByPid(pid, args...)
+}
+
+// GetHandByPidC get handle mdata by pid
+func GetHandByPidC(pid int, args ...int) C.MData {
+	var isPid int
+	if len(args) > 0 || NotPid {
+		isPid = 1
 	}
 
-	return C.set_handle_pid(C.uintptr(pid), C.uintptr(isHwnd))
+	return C.set_handle_pid(C.uintptr(pid), C.int8_t(isPid))
 }
 
 // GetHandle get the window handle
@@ -1310,19 +1037,19 @@ func GetHandle() int {
 
 // Deprecated: use the GetHandle(),
 //
-// GetBHandle get the window handle, Wno-deprecated
+// # GetBHandle get the window handle, Wno-deprecated
 //
 // This function will be removed in version v1.0.0
 func GetBHandle() int {
 	tt.Drop("GetBHandle", "GetHandle")
-	hwnd := C.bget_handle()
+	hwnd := C.b_get_handle()
 	ghwnd := int(hwnd)
 	//fmt.Println("gethwnd---", ghwnd)
 	return ghwnd
 }
 
-func cgetTitle(hwnd, isHwnd int32) string {
-	title := C.get_title(C.uintptr(hwnd), C.uintptr(isHwnd))
+func cgetTitle(pid, isPid int) string {
+	title := C.get_title_by_pid(C.uintptr(pid), C.int8_t(isPid))
 	gtitle := C.GoString(title)
 
 	return gtitle
@@ -1331,11 +1058,12 @@ func cgetTitle(hwnd, isHwnd int32) string {
 // GetTitle get the window title return string
 //
 // Examples:
+//
 //	fmt.Println(robotgo.GetTitle())
 //
 //	ids, _ := robotgo.FindIds()
 //	robotgo.GetTitle(ids[0])
-func GetTitle(args ...int32) string {
+func GetTitle(args ...int) string {
 	if len(args) <= 0 {
 		title := C.get_main_title()
 		gtitle := C.GoString(title)
@@ -1349,15 +1077,21 @@ func GetTitle(args ...int32) string {
 	return internalGetTitle(args[0])
 }
 
-// GetPID get the process id return int32
-func GetPID() int32 {
+// GetPid get the process id return int32
+func GetPid() int {
 	pid := C.get_PID()
-	return int32(pid)
+	return int(pid)
 }
 
 // internalGetBounds get the window bounds
-func internalGetBounds(pid int32, hwnd int) (int, int, int, int) {
-	bounds := C.get_bounds(C.uintptr(pid), C.uintptr(hwnd))
+func internalGetBounds(pid, isPid int) (int, int, int, int) {
+	bounds := C.get_bounds(C.uintptr(pid), C.int8_t(isPid))
+	return int(bounds.X), int(bounds.Y), int(bounds.W), int(bounds.H)
+}
+
+// internalGetClient get the window client bounds
+func internalGetClient(pid, isPid int) (int, int, int, int) {
+	bounds := C.get_client(C.uintptr(pid), C.int8_t(isPid))
 	return int(bounds.X), int(bounds.Y), int(bounds.W), int(bounds.H)
 }
 
@@ -1367,29 +1101,30 @@ func Is64Bit() bool {
 	return bool(b)
 }
 
-func internalActive(pid int32, hwnd int) {
-	C.active_PID(C.uintptr(pid), C.uintptr(hwnd))
+func internalActive(pid, isPid int) {
+	C.active_PID(C.uintptr(pid), C.int8_t(isPid))
 }
 
-// ActivePID active the window by PID,
+// ActivePid active the window by Pid,
 // If args[0] > 0 on the Windows platform via a window handle to active
-// func ActivePID(pid int32, args ...int) {
-// 	var hwnd int
+// func ActivePid(pid int32, args ...int) {
+// 	var isPid int
 // 	if len(args) > 0 {
-// 		hwnd = args[0]
+// 		isPid = args[0]
 // 	}
 
-// 	C.active_PID(C.uintptr(pid), C.uintptr(hwnd))
+// 	C.active_PID(C.uintptr(pid), C.uintptr(isPid))
 // }
 
 // ActiveName active the window by name
 //
 // Examples:
-// 	robotgo.ActiveName("chrome")
+//
+//	robotgo.ActiveName("chrome")
 func ActiveName(name string) error {
 	pids, err := FindIds(name)
 	if err == nil && len(pids) > 0 {
-		return ActivePID(pids[0])
+		return ActivePid(pids[0])
 	}
 
 	return err

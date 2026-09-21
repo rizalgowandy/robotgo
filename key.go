@@ -1,0 +1,488 @@
+//go:build !wayland && !win && !libei && !mac && !x11 && !purego
+// +build !wayland,!win,!libei,!mac,!x11,!purego
+
+// Copyright (c) 2016-2026 AtomAI, All rights reserved.
+//
+// See the COPYRIGHT file at the top-level directory of this distribution and at
+// https://github.com/go-vgo/robotgo/blob/master/LICENSE
+//
+// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+// http://www.apache.org/licenses/LICENSE-2.0>
+//
+// This file may not be copied, modified, or distributed
+// except according to those terms.
+
+package robotgo
+
+/*
+// #include "key/keycode.h"
+#include "key/keypress_c.h"
+*/
+import "C"
+
+import (
+	"errors"
+	"math/rand"
+	"reflect"
+	"runtime"
+	"strings"
+	"unicode"
+	"unsafe"
+)
+
+// keyNames define a map of key names to MMKeyCode
+var keyNames = map[string]C.MMKeyCode{
+	"backspace": C.K_BACKSPACE,
+	"delete":    C.K_DELETE,
+	"enter":     C.K_RETURN,
+	"tab":       C.K_TAB,
+	"esc":       C.K_ESCAPE,
+	"escape":    C.K_ESCAPE,
+	"up":        C.K_UP,
+	"down":      C.K_DOWN,
+	"right":     C.K_RIGHT,
+	"left":      C.K_LEFT,
+	"home":      C.K_HOME,
+	"end":       C.K_END,
+	"pageup":    C.K_PAGEUP,
+	"pagedown":  C.K_PAGEDOWN,
+	//
+	"f1":  C.K_F1,
+	"f2":  C.K_F2,
+	"f3":  C.K_F3,
+	"f4":  C.K_F4,
+	"f5":  C.K_F5,
+	"f6":  C.K_F6,
+	"f7":  C.K_F7,
+	"f8":  C.K_F8,
+	"f9":  C.K_F9,
+	"f10": C.K_F10,
+	"f11": C.K_F11,
+	"f12": C.K_F12,
+	"f13": C.K_F13,
+	"f14": C.K_F14,
+	"f15": C.K_F15,
+	"f16": C.K_F16,
+	"f17": C.K_F17,
+	"f18": C.K_F18,
+	"f19": C.K_F19,
+	"f20": C.K_F20,
+	"f21": C.K_F21,
+	"f22": C.K_F22,
+	"f23": C.K_F23,
+	"f24": C.K_F24,
+	//
+	"cmd":         C.K_META,
+	"cmdl":        C.K_LMETA,
+	"cmdr":        C.K_RMETA,
+	"command":     C.K_META,
+	"alt":         C.K_ALT,
+	"altl":        C.K_LALT,
+	"altr":        C.K_RALT,
+	"ctrl":        C.K_CONTROL,
+	"ctrll":       C.K_LCONTROL,
+	"ctrlr":       C.K_RCONTROL,
+	"control":     C.K_CONTROL,
+	"shift":       C.K_SHIFT,
+	"shiftl":      C.K_LSHIFT,
+	"shiftr":      C.K_RSHIFT,
+	"right_shift": C.K_RSHIFT,
+	"capslock":    C.K_CAPSLOCK,
+	"space":       C.K_SPACE,
+	"print":       C.K_PRINTSCREEN,
+	"printscreen": C.K_PRINTSCREEN,
+	"insert":      C.K_INSERT,
+	"menu":        C.K_MENU,
+	"scroll_lock": C.K_SCROLL_LOCK,
+	"pause_break": C.K_PAUSE,
+
+	"audio_mute":     C.K_AUDIO_VOLUME_MUTE,
+	"audio_vol_down": C.K_AUDIO_VOLUME_DOWN,
+	"audio_vol_up":   C.K_AUDIO_VOLUME_UP,
+	"audio_play":     C.K_AUDIO_PLAY,
+	"audio_stop":     C.K_AUDIO_STOP,
+	"audio_pause":    C.K_AUDIO_PAUSE,
+	"audio_prev":     C.K_AUDIO_PREV,
+	"audio_next":     C.K_AUDIO_NEXT,
+	"audio_rewind":   C.K_AUDIO_REWIND,
+	"audio_forward":  C.K_AUDIO_FORWARD,
+	"audio_repeat":   C.K_AUDIO_REPEAT,
+	"audio_random":   C.K_AUDIO_RANDOM,
+
+	"num0":     C.K_NUMPAD_0,
+	"num1":     C.K_NUMPAD_1,
+	"num2":     C.K_NUMPAD_2,
+	"num3":     C.K_NUMPAD_3,
+	"num4":     C.K_NUMPAD_4,
+	"num5":     C.K_NUMPAD_5,
+	"num6":     C.K_NUMPAD_6,
+	"num7":     C.K_NUMPAD_7,
+	"num8":     C.K_NUMPAD_8,
+	"num9":     C.K_NUMPAD_9,
+	"num_lock": C.K_NUMPAD_LOCK,
+
+	// todo: removed
+	"numpad_0":    C.K_NUMPAD_0,
+	"numpad_1":    C.K_NUMPAD_1,
+	"numpad_2":    C.K_NUMPAD_2,
+	"numpad_3":    C.K_NUMPAD_3,
+	"numpad_4":    C.K_NUMPAD_4,
+	"numpad_5":    C.K_NUMPAD_5,
+	"numpad_6":    C.K_NUMPAD_6,
+	"numpad_7":    C.K_NUMPAD_7,
+	"numpad_8":    C.K_NUMPAD_8,
+	"numpad_9":    C.K_NUMPAD_9,
+	"numpad_lock": C.K_NUMPAD_LOCK,
+
+	"num.":      C.K_NUMPAD_DECIMAL,
+	"num+":      C.K_NUMPAD_PLUS,
+	"num-":      C.K_NUMPAD_MINUS,
+	"num*":      C.K_NUMPAD_MUL,
+	"num/":      C.K_NUMPAD_DIV,
+	"num_clear": C.K_NUMPAD_CLEAR,
+	"num_enter": C.K_NUMPAD_ENTER,
+	"num_equal": C.K_NUMPAD_EQUAL,
+
+	"lights_mon_up":     C.K_LIGHTS_MON_UP,
+	"lights_mon_down":   C.K_LIGHTS_MON_DOWN,
+	"lights_kbd_toggle": C.K_LIGHTS_KBD_TOGGLE,
+	"lights_kbd_up":     C.K_LIGHTS_KBD_UP,
+	"lights_kbd_down":   C.K_LIGHTS_KBD_DOWN,
+
+	// { NULL:              C.K_NOT_A_KEY }
+}
+
+// It sends a key press and release to the active application
+func tapKeyCode(code C.MMKeyCode, flags C.MMKeyFlags, pid C.uintptr) {
+	C.toggleKeyCode(code, true, flags, pid)
+	MilliSleep(3)
+	C.toggleKeyCode(code, false, flags, pid)
+}
+
+var keyErr = errors.New("Invalid key flag specified.")
+
+func checkKeyCodes(k string) (key C.MMKeyCode, err error) {
+	if k == "" {
+		return
+	}
+
+	if len(k) == 1 {
+		val1 := C.CString(k)
+		defer C.free(unsafe.Pointer(val1))
+
+		key = C.keyCodeForChar(*val1)
+		if key == C.K_NOT_A_KEY {
+			err = keyErr
+			return
+		}
+		return
+	}
+
+	if v, ok := keyNames[k]; ok {
+		key = v
+		if key == C.K_NOT_A_KEY {
+			err = keyErr
+			return
+		}
+	}
+	return
+}
+
+func checkKeyFlags(f string) (flags C.MMKeyFlags) {
+	m := map[string]C.MMKeyFlags{
+		"alt":     C.MOD_ALT,
+		"altr":    C.MOD_ALT,
+		"altl":    C.MOD_ALT,
+		"cmd":     C.MOD_META,
+		"command": C.MOD_META,
+		"cmdr":    C.MOD_META,
+		"cmdl":    C.MOD_META,
+		"ctrl":    C.MOD_CONTROL,
+		"control": C.MOD_CONTROL,
+		"ctrlr":   C.MOD_CONTROL,
+		"ctrll":   C.MOD_CONTROL,
+		"shift":   C.MOD_SHIFT,
+		"shiftr":  C.MOD_SHIFT,
+		"shiftl":  C.MOD_SHIFT,
+		"none":    C.MOD_NONE,
+	}
+
+	if v, ok := m[f]; ok {
+		return v
+	}
+	return
+}
+
+func getFlagsFromValue(value []string) (flags C.MMKeyFlags) {
+	if len(value) <= 0 {
+		return
+	}
+
+	for i := 0; i < len(value); i++ {
+		var f C.MMKeyFlags = C.MOD_NONE
+
+		f = checkKeyFlags(value[i])
+		flags = (C.MMKeyFlags)(flags | f)
+	}
+
+	return
+}
+
+func upKeyArr(keyArr []string, pid int) {
+	for i := 0; i < len(keyArr); i++ {
+		key1, _ := checkKeyCodes(keyArr[i])
+		C.toggleKeyCode(key1, false, C.MOD_NONE, C.uintptr(pid))
+	}
+}
+
+func keyTaps(k string, keyArr []string, pid int) error {
+	flags := getFlagsFromValue(keyArr)
+	key, err := checkKeyCodes(k)
+	if err != nil {
+		return err
+	}
+
+	tapKeyCode(key, flags, C.uintptr(pid))
+	MilliSleep(KeySleep)
+	upKeyArr(keyArr, pid)
+	return nil
+}
+
+func getKeyDown(keyArr []string) (bool, []string) {
+	if len(keyArr) <= 0 {
+		keyArr = append(keyArr, "down")
+	}
+
+	down := true
+	if keyArr[0] == "up" {
+		down = false
+	}
+
+	if keyArr[0] == "up" || keyArr[0] == "down" {
+		keyArr = keyArr[1:]
+	}
+	return down, keyArr
+}
+
+func keyTogglesB(k string, down bool, keyArr []string, pid int) error {
+	flags := getFlagsFromValue(keyArr)
+	key, err := checkKeyCodes(k)
+	if err != nil {
+		return err
+	}
+
+	C.toggleKeyCode(key, C.bool(down), flags, C.uintptr(pid))
+	MilliSleep(KeySleep)
+	if !down {
+		upKeyArr(keyArr, pid)
+	}
+	return nil
+}
+
+func keyToggles(k string, keyArr []string, pid int) error {
+	down, keyArr1 := getKeyDown(keyArr)
+	return keyTogglesB(k, down, keyArr1, pid)
+}
+
+/*
+ __  ___  ___________    ____ .______     ______        ___      .______       _______
+|  |/  / |   ____\   \  /   / |   _  \   /  __  \      /   \     |   _  \     |       \
+|  '  /  |  |__   \   \/   /  |  |_)  | |  |  |  |    /  ^  \    |  |_)  |    |  .--.  |
+|    <   |   __|   \_    _/   |   _  <  |  |  |  |   /  /_\  \   |      /     |  |  |  |
+|  .  \  |  |____    |  |     |  |_)  | |  `--'  |  /  _____  \  |  |\  \----.|  '--'  |
+|__|\__\ |_______|   |__|     |______/   \______/  /__/     \__\ | _| `._____||_______/
+
+*/
+
+// toErr it converts a C string to a Go error
+func toErr(str *C.char) error {
+	gstr := C.GoString(str)
+	if gstr == "" {
+		return nil
+	}
+	return errors.New(gstr)
+}
+
+func appendShift(key string, len1 int, args ...interface{}) (string, []interface{}) {
+	if len(key) > 0 && unicode.IsUpper([]rune(key)[0]) {
+		args = append(args, "shift")
+	}
+
+	key = strings.ToLower(key)
+	if _, ok := Special[key]; ok {
+		key = Special[key]
+		if len(args) <= len1 {
+			args = append(args, "shift")
+		}
+	}
+
+	return key, args
+}
+
+// KeyTap taps the keyboard code;
+//
+// See keys supported:
+//
+//	https://github.com/go-vgo/robotgo/blob/master/docs/keys.md#keys
+//
+// Examples:
+//
+//	robotgo.KeySleep = 100 // 100 millisecond
+//	robotgo.KeyTap("a")
+//	robotgo.KeyTap("i", "alt", "command")
+//
+//	arr := []string{"alt", "command"}
+//	robotgo.KeyTap("i", arr)
+//
+//	robotgo.KeyTap("k", pid int)
+func KeyTap(key string, args ...interface{}) error {
+	var keyArr []string
+	key, args = appendShift(key, 0, args...)
+
+	pid := 0
+	if len(args) > 0 {
+		if reflect.TypeOf(args[0]) == reflect.TypeOf(keyArr) {
+			keyArr = args[0].([]string)
+		} else {
+			if reflect.TypeOf(args[0]) == reflect.TypeOf(pid) {
+				pid = args[0].(int)
+				keyArr = ToStrings(args[1:])
+			} else {
+				keyArr = ToStrings(args)
+			}
+		}
+	}
+
+	return keyTaps(key, keyArr, pid)
+}
+
+func getToggleArgs(args ...interface{}) (pid int, keyArr []string) {
+	if len(args) > 0 && reflect.TypeOf(args[0]) == reflect.TypeOf(pid) {
+		pid = args[0].(int)
+		keyArr = ToStrings(args[1:])
+	} else {
+		keyArr = ToStrings(args)
+	}
+	return
+}
+
+// KeyToggle toggles the keyboard, if there not have args default is "down"
+//
+// See keys:
+//
+//	https://github.com/go-vgo/robotgo/blob/master/docs/keys.md#keys
+//
+// Examples:
+//
+//	robotgo.KeyToggle("a")
+//	robotgo.KeyToggle("a", "up")
+//
+//	robotgo.KeyToggle("a", "up", "alt", "cmd")
+//	robotgo.KeyToggle("k", pid int)
+func KeyToggle(key string, args ...interface{}) error {
+	key, args = appendShift(key, 1, args...)
+	pid, keyArr := getToggleArgs(args...)
+	return keyToggles(key, keyArr, pid)
+}
+
+// KeyPress press key string
+func KeyPress(key string, args ...interface{}) error {
+	err := KeyDown(key, args...)
+	if err != nil {
+		return err
+	}
+
+	MilliSleep(1 + rand.Intn(3))
+	return KeyUp(key, args...)
+}
+
+// KeyDown press down a key
+func KeyDown(key string, args ...interface{}) error {
+	return KeyToggle(key, args...)
+}
+
+// KeyUp press up a key
+func KeyUp(key string, args ...interface{}) error {
+	arr := []interface{}{"up"}
+	arr = append(arr, args...)
+	return KeyToggle(key, arr...)
+}
+
+// UnicodeType tap the uint32 unicode
+func UnicodeType(str uint32, args ...int) {
+	cstr := C.uint(str)
+	pid := 0
+	if len(args) > 0 {
+		pid = args[0]
+	}
+
+	isPid := 0
+	if len(args) > 1 {
+		isPid = args[1]
+	}
+
+	C.unicodeType(cstr, C.uintptr(pid), C.int8_t(isPid))
+}
+
+func inputUTF(str string) {
+	cstr := C.CString(str)
+	C.input_utf(cstr)
+
+	C.free(unsafe.Pointer(cstr))
+}
+
+// TypeStr tap a string
+//
+// Deprecated: use the Type()
+func TypeStr(str string, args ...int) {
+	Type(str, args...)
+}
+
+// Type type a string (supported UTF-8)
+//
+// robotgo.Type(string: "The string to send", int: pid, "milli_sleep time", "x11 option")
+//
+// Examples:
+//
+//	robotgo.Type("abc@123, Hi galaxy, こんにちは")
+//	robotgo.Type("To be or not to be, this is questions.", pid int)
+func Type(str string, args ...int) {
+	var tm, tm1 = 0, 7
+
+	if len(args) > 1 {
+		tm = args[1]
+	}
+	if len(args) > 2 {
+		tm1 = args[2]
+	}
+	pid := 0
+	if len(args) > 0 {
+		pid = args[0]
+	}
+
+	if runtime.GOOS == "linux" {
+		strUc := ToUC(str)
+		for i := 0; i < len(strUc); i++ {
+			ru := []rune(strUc[i])
+			if len(ru) <= 1 {
+				ustr := uint32(CharCodeAt(strUc[i], 0))
+				UnicodeType(ustr, pid)
+			} else {
+				inputUTF(strUc[i])
+				MilliSleep(tm1)
+			}
+
+			MilliSleep(tm)
+		}
+		return
+	}
+
+	for i := 0; i < len([]rune(str)); i++ {
+		ustr := uint32(CharCodeAt(str, i))
+		UnicodeType(ustr, pid)
+		// if len(args) > 0 {
+		MilliSleep(tm)
+		// }
+	}
+	MilliSleep(KeySleep)
+}

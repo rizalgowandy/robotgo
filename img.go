@@ -1,11 +1,12 @@
-// Copyright 2016 The go-vgo Project Developers. See the COPYRIGHT
-// file at the top-level directory of this distribution and at
+// Copyright (c) 2016-2026 AtomAI, All rights reserved.
+//
+// See the COPYRIGHT file at the top-level directory of this distribution and at
 // https://github.com/go-vgo/robotgo/blob/master/LICENSE
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
-// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
-// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
-// option. This file may not be copied, modified, or distributed
+// http://www.apache.org/licenses/LICENSE-2.0>
+//
+// This file may not be copied, modified, or distributed
 // except according to those terms.
 
 package robotgo
@@ -34,8 +35,8 @@ func Read(path string) (image.Image, error) {
 }
 
 // Save create a image file with the image.Image
-func Save(img image.Image, path string) error {
-	return imgo.Save(path, img)
+func Save(img image.Image, path string, quality ...int) error {
+	return imgo.Save(path, img, quality...)
 }
 
 // SaveImg save the image by []byte
@@ -49,13 +50,13 @@ func SavePng(img image.Image, path string) error {
 }
 
 // SaveJpeg save the image by image.Image
-func SaveJpeg(img image.Image, path string) error {
-	return imgo.SaveToJpeg(path, img)
+func SaveJpeg(img image.Image, path string, quality ...int) error {
+	return imgo.SaveToJpeg(path, img, quality...)
 }
 
 // ToByteImg convert image.Image to []byte
 func ToByteImg(img image.Image, fm ...string) []byte {
-	return imgo.ToByteImg(img, fm...)
+	return imgo.ToByte(img, fm...)
 }
 
 // ToStringImg convert image.Image to string
@@ -122,7 +123,7 @@ func ImgToBitmap(m image.Image) (bit Bitmap) {
 // ToUint8p convert the []uint8 to uint8 pointer
 func ToUint8p(dst []uint8) *uint8 {
 	src := make([]uint8, len(dst)+10)
-	for i := 0; i < len(dst)-4; i += 4 {
+	for i := 0; i <= len(dst)-4; i += 4 {
 		src[i+3] = dst[i+3]
 		src[i] = dst[i+2]
 		src[i+1] = dst[i+1]
@@ -144,14 +145,11 @@ func ToRGBAGo(bmp1 Bitmap) *image.RGBA {
 }
 
 func val(p *uint8, n int) uint8 {
-	addr := uintptr(unsafe.Pointer(p))
-	addr += uintptr(n)
-	p1 := (*uint8)(unsafe.Pointer(addr))
-	return *p1
+	return *(*uint8)(unsafe.Add(unsafe.Pointer(p), n))
 }
 
 func copyToVUint8A(dst []uint8, src *uint8) {
-	for i := 0; i < len(dst)-4; i += 4 {
+	for i := 0; i <= len(dst)-4; i += 4 {
 		dst[i] = val(src, i+2)
 		dst[i+1] = val(src, i+1)
 		dst[i+2] = val(src, i)

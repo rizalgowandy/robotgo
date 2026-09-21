@@ -1,0 +1,200 @@
+//go:build windows
+// +build windows
+
+// Copyright (c) 2016-2026 AtomAI, All rights reserved.
+//
+// See the COPYRIGHT file at the top-level directory of this distribution and at
+// https://github.com/go-vgo/robotgo/blob/master/LICENSE
+//
+// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+// http://www.apache.org/licenses/LICENSE-2.0>
+//
+// This file may not be copied, modified, or distributed
+// except according to those terms.
+
+package win
+
+import "testing"
+
+func TestKeyToVK(t *testing.T) {
+	// Named keys must resolve.
+	named := []string{
+		"enter", "tab", "space", "backspace", "delete", "esc", "escape",
+		"up", "down", "left", "right", "home", "end",
+		"shift", "ctrl", "alt", "f1", "f12",
+	}
+	for _, k := range named {
+		if _, _, ok := keyToVK(k); !ok {
+			t.Errorf("keyToVK(%q): expected resolvable named key", k)
+		}
+	}
+
+	// Single alphanumerics resolve via VkKeyScan.
+	for _, k := range []string{"a", "z", "0", "9"} {
+		if _, _, ok := keyToVK(k); !ok {
+			t.Errorf("keyToVK(%q): expected resolvable char", k)
+		}
+	}
+
+	if _, _, ok := keyToVK("nonexistent_key"); ok {
+		t.Error("keyToVK(nonexistent_key): expected not resolvable")
+	}
+}
+
+func TestKeyToVKRejectsNonBMP(t *testing.T) {
+	// These code points truncate to ASCII keys if cast directly to uint16.
+	for _, key := range []string{"\U00010061", "\U00010041", "\U00010030", "\U00100061", "😀"} {
+		if vk, mods, ok := keyToVK(key); ok || vk != 0 || mods != 0 {
+			t.Errorf("keyToVK(%q) = (%#x, %d, %v), want (0, 0, false)", key, vk, mods, ok)
+		}
+	}
+}
+
+func TestAppendUniqueMod(t *testing.T) {
+	for _, mod := range []string{"shift", "ctrl", "alt"} {
+		variants := []string{mod, mod + "l", mod + "r"}
+		if mod == "ctrl" {
+			variants = append(variants, "control")
+		}
+		for _, variant := range variants {
+			t.Run(variant, func(t *testing.T) {
+				got := appendUniqueMod([]string{"cmd", variant}, mod)
+				if len(got) != 2 || got[0] != "cmd" || got[1] != variant {
+					t.Errorf("appendUniqueMod([cmd %s], %q) = %v, want unchanged modifiers", variant, mod, got)
+				}
+			})
+		}
+		t.Run(mod+"/missing", func(t *testing.T) {
+			got := appendUniqueMod([]string{"cmd"}, mod)
+			if len(got) != 2 || got[0] != "cmd" || got[1] != mod {
+				t.Errorf("appendUniqueMod([cmd], %q) = %v, want [cmd %s]", mod, got, mod)
+			}
+			got = appendUniqueMod(nil, mod)
+			if len(got) != 1 || got[0] != mod {
+				t.Errorf("appendUniqueMod(nil, %q) = %v, want [%s]", mod, got, mod)
+			}
+		})
+	}
+}
+
+func TestExtractModifiers(t *testing.T) {
+	tests := []struct {
+		name string
+		args []interface{}
+		want []string
+	}{
+		{"no mods", []interface{}{}, nil},
+		{"ctrl", []interface{}{"ctrl"}, []string{"ctrl"}},
+		{"ctrl+shift", []interface{}{"ctrl", "shift"}, []string{"ctrl", "shift"}},
+		{"mixed types", []interface{}{"ctrl", 42, true, "alt"}, []string{"ctrl", "alt"}},
+		{"non-modifier string", []interface{}{"hello"}, nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := extractModifiers(tt.args)
+			if len(got) != len(tt.want) {
+				t.Errorf("extractModifiers(%v): got %v, want %v", tt.args, got, tt.want)
+				return
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("extractModifiers(%v)[%d]: got %q, want %q", tt.args, i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
+}
+
+func TestExtractPid(t *testing.T) {
+	tests := []struct {
+		name string
+		args []interface{}
+		want int
+	}{
+		{"no args", []interface{}{}, 0},
+		{"only modifiers", []interface{}{"ctrl", "shift"}, 0},
+		{"pid first", []interface{}{1234}, 1234},
+		{"pid after modifier", []interface{}{"ctrl", 4321}, 4321},
+		{"first int wins", []interface{}{42, 99}, 42},
+		{"mixed types", []interface{}{"alt", true, 7, "shift"}, 7},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := extractPid(tt.args); got != tt.want {
+				t.Errorf("extractPid(%v): got %d, want %d", tt.args, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestKeyHwndNotPid(t *testing.T) {
+	// With NotPid set, the pid value is treated as an HWND directly.
+	old := NotPid
+	NotPid = true
+	defer func() { NotPid = old }()
+
+	if got := keyHwnd(0x1234); uintptr(got) != 0x1234 {
+		t.Errorf("keyHwnd(0x1234) with NotPid: got %#x, want %#x", uintptr(got), 0x1234)
+	}
+}
+
+func TestMouseButtonFlags(t *testing.T) {
+	tests := []string{"left", "right", "center", "middle", "", "unknown"}
+	for _, btn := range tests {
+		down, up := mouseButtonFlags(btn)
+		if down == 0 || up == 0 {
+			t.Errorf("mouseButtonFlags(%q): got zero flags down=%d up=%d", btn, down, up)
+		}
+	}
+}
+
+func TestPadHex(t *testing.T) {
+	tests := []struct {
+		hex  uint32
+		want string
+	}{
+		{0x000000, "000000"},
+		{0xFF0000, "ff0000"},
+		{0x00FF00, "00ff00"},
+		{0x0000FF, "0000ff"},
+		{0xABCDEF, "abcdef"},
+		{0x123, "000123"},
+	}
+	for _, tt := range tests {
+		if got := PadHex(tt.hex); got != tt.want {
+			t.Errorf("PadHex(0x%x): got %q, want %q", tt.hex, got, tt.want)
+		}
+	}
+}
+
+func TestGetVersion(t *testing.T) {
+	if GetVersion() == "" {
+		t.Error("GetVersion() returned empty string")
+	}
+}
+
+func TestCmdCtrl(t *testing.T) {
+	if got := CmdCtrl(); got != "ctrl" {
+		t.Errorf("CmdCtrl(): got %q, want %q", got, "ctrl")
+	}
+}
+
+func TestTypes(t *testing.T) {
+	p := Point{X: 1, Y: 2}
+	if p.X != 1 || p.Y != 2 {
+		t.Errorf("Point: got %+v", p)
+	}
+	s := Size{W: 100, H: 200}
+	if s.W != 100 || s.H != 200 {
+		t.Errorf("Size: got %+v", s)
+	}
+	r := Rect{Point: p, Size: s}
+	if r.X != 1 || r.W != 100 {
+		t.Errorf("Rect: got %+v", r)
+	}
+	n := Nps{Pid: 42, Name: "test"}
+	if n.Pid != 42 || n.Name != "test" {
+		t.Errorf("Nps: got %+v", n)
+	}
+}

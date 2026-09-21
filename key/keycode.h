@@ -4,11 +4,6 @@
 
 #include "../base/os.h"
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
-
 #if defined(IS_MACOSX)
 
 #include <Carbon/Carbon.h> /* Really only need <HIToolbox/Events.h> */
@@ -75,6 +70,9 @@ enum _MMKeyCode {
 	// K_PRINTSCREEN = K_NOT_A_KEY,
 	K_PRINTSCREEN = kVK_F13,
 	K_MENU = K_NOT_A_KEY,
+	// macOS has no dedicated Scroll Lock / Pause virtual keycodes.
+	K_SCROLL_LOCK = K_NOT_A_KEY, // f14
+	K_PAUSE = K_NOT_A_KEY, // f15
 
 	K_NUMPAD_0 = kVK_ANSI_Keypad0,
 	K_NUMPAD_1 = kVK_ANSI_Keypad1,
@@ -96,6 +94,13 @@ enum _MMKeyCode {
 	K_NUMPAD_CLEAR   = kVK_ANSI_KeypadClear,
 	K_NUMPAD_ENTER   = kVK_ANSI_KeypadEnter,
 	K_NUMPAD_EQUAL   = kVK_ANSI_KeypadEquals,
+	K_NUMPAD_LB 	 = kVK_ANSI_LeftBracket,
+	K_NUMPAD_RB 	 = kVK_ANSI_RightBracket,
+	K_Backslash	 	 = kVK_ANSI_Backslash,
+	K_Semicolon		 = kVK_ANSI_Semicolon,
+	K_Quote			 = kVK_ANSI_Quote,
+	K_Slash			 = kVK_ANSI_Slash,
+	K_Grave			 = kVK_ANSI_Grave,
 
 	K_AUDIO_VOLUME_MUTE = 1007,
 	K_AUDIO_VOLUME_DOWN = 1001,
@@ -177,11 +182,13 @@ enum _MMKeyCode {
 	K_SHIFT = XK_Shift_L,
 	K_LSHIFT = XK_Shift_L,
 	K_RSHIFT = XK_Shift_R,
-	K_CAPSLOCK = XK_Shift_Lock,
+	K_CAPSLOCK = XK_Caps_Lock,
 	K_SPACE = XK_space,
 	K_INSERT = XK_Insert,
 	K_PRINTSCREEN = XK_Print,
 	K_MENU = K_NOT_A_KEY,
+	K_SCROLL_LOCK = XK_Scroll_Lock,
+	K_PAUSE = XK_Pause,
 
 	// K_NUMPAD_0 = K_NOT_A_KEY,
 	K_NUMPAD_0 = XK_KP_0,
@@ -204,6 +211,13 @@ enum _MMKeyCode {
 	K_NUMPAD_CLEAR   = K_NOT_A_KEY,
 	K_NUMPAD_ENTER   = 96,	// XK_KP_Enter
 	K_NUMPAD_EQUAL   = XK_equal,
+	K_NUMPAD_LB 	 = XK_bracketleft,
+	K_NUMPAD_RB 	 = XK_bracketright,
+	K_Backslash 	 = XK_backslash,
+	K_Semicolon 	 = XK_semicolon,
+	K_Quote			 = XK_apostrophe,
+	K_Slash			 = XK_slash,
+	K_Grave			 = XK_grave,
 
 	K_AUDIO_VOLUME_MUTE = XF86XK_AudioMute,
 	K_AUDIO_VOLUME_DOWN = XF86XK_AudioLowerVolume,
@@ -226,6 +240,53 @@ enum _MMKeyCode {
 };
 
 typedef KeySym MMKeyCode;
+
+/*
+ * Structs to store key mappings not handled by XStringToKeysym() on some
+ * Linux systems.
+ */
+struct XSpecialCharacterMapping {
+	char name;
+	MMKeyCode code;
+};
+
+struct XSpecialCharacterMapping XSpecialCharacterTable[] = {
+	{'~', XK_asciitilde},
+  	{'_', XK_underscore},
+  	{'[', XK_bracketleft},
+  	{']', XK_bracketright},
+  	{'!', XK_exclam},
+  	{'#', XK_numbersign},
+  	{'$', XK_dollar},
+  	{'%', XK_percent},
+  	{'&', XK_ampersand},
+  	{'*', XK_asterisk},
+  	{'+', XK_plus},
+  	{',', XK_comma},
+  	{'-', XK_minus},
+  	{'.', XK_period},
+  	{'?', XK_question},
+  	{'<', XK_less},
+  	{'>', XK_greater},
+  	{'=', XK_equal},
+  	{'@', XK_at},
+  	{':', XK_colon},
+  	{';', XK_semicolon},
+  	{'{', XK_braceleft},
+  	{'}', XK_braceright},
+  	{'|', XK_bar},
+  	{'^', XK_asciicircum},
+  	{'(', XK_parenleft},
+  	{')', XK_parenright},
+  	{' ', XK_space},
+  	{'/', XK_slash},
+	{'\\', XK_backslash},
+	{'`', XK_grave},
+	{'"', XK_quoteright},
+  	{'\'', XK_quotedbl},
+  	{'\t', XK_Tab},
+  	{'\n', XK_Return}
+};
 
 #elif defined(IS_WINDOWS)
 
@@ -287,6 +348,8 @@ enum _MMKeyCode {
 	K_PRINTSCREEN = VK_SNAPSHOT,
 	K_INSERT = VK_INSERT,
 	K_MENU = VK_APPS,
+	K_SCROLL_LOCK = VK_SCROLL,
+	K_PAUSE = VK_PAUSE,
 
 	K_NUMPAD_0 = VK_NUMPAD0,
 	K_NUMPAD_1 = VK_NUMPAD1,
@@ -308,6 +371,13 @@ enum _MMKeyCode {
 	K_NUMPAD_CLEAR   = K_NOT_A_KEY,
 	K_NUMPAD_ENTER   = VK_RETURN,
 	K_NUMPAD_EQUAL   = VK_OEM_PLUS,
+	K_NUMPAD_LB		 = VK_OEM_4,
+	K_NUMPAD_RB		 = VK_OEM_6,
+	K_Backslash		 = VK_OEM_5,
+	K_Semicolon		 = VK_OEM_1,
+	K_Quote		 	 = VK_OEM_7,
+	K_Slash			 = VK_OEM_2,
+	K_Grave			 = VK_OEM_3,
 
 	K_AUDIO_VOLUME_MUTE = VK_VOLUME_MUTE,
 	K_AUDIO_VOLUME_DOWN = VK_VOLUME_DOWN,
@@ -338,7 +408,3 @@ typedef int MMKeyCode;
 MMKeyCode keyCodeForChar(const char c);
 
 #endif /* KEYCODE_H */
-
-#ifdef __cplusplus
-}
-#endif

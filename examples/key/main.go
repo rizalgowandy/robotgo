@@ -1,11 +1,12 @@
-// Copyright 2016 The go-vgo Project Developers. See the COPYRIGHT
-// file at the top-level directory of this distribution and at
+// Copyright (c) 2016-2026 AtomAI, All rights reserved.
+//
+// See the COPYRIGHT file at the top-level directory of this distribution and at
 // https://github.com/go-vgo/robotgo/blob/master/LICENSE
 //
 // Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
-// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
-// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
-// option. This file may not be copied, modified, or distributed
+// http://www.apache.org/licenses/LICENSE-2.0>
+//
+// This file may not be copied, modified, or distributed
 // except according to those terms.
 
 package main
@@ -18,26 +19,29 @@ import (
 )
 
 func typeStr() {
-	// importing "Hello World"
-	robotgo.TypeStr("Hello World!", 1.0)
+	// typing "Hello World"
+	robotgo.Type("Hello World!", 0, 1)
 	robotgo.KeySleep = 100
-	robotgo.TypeStr("だんしゃり")
+	robotgo.Type("だんしゃり")
 
-	robotgo.TypeStr("Hi galaxy. こんにちは世界. 你好, 再见!")
-
+	robotgo.Type("Hi galaxy, hi stars, hi MT.Rainier, hi sea. こんにちは世界.")
+	robotgo.Type("So, hi, bye! 你好, 再见!")
 	robotgo.Sleep(1)
-	robotgo.TypeStr("So, hi, bye!")
+
+	robotgo.Type("Hi, Seattle space needle, Golden gate bridge, One world trade center.")
 	robotgo.MilliSleep(100)
 
 	ustr := uint32(robotgo.CharCodeAt("So, hi, bye!", 0))
 	robotgo.UnicodeType(ustr)
 
-	robotgo.PasteStr("paste string")
+	err := robotgo.Paste("paste string")
+	fmt.Println("PasteStr: ", err)
 }
 
 func keyTap() {
 	// press "enter"
 	robotgo.KeyTap("enter")
+	robotgo.KeyTap(robotgo.Enter)
 	robotgo.KeySleep = 200
 	robotgo.KeyTap("a")
 	robotgo.MilliSleep(100)
@@ -45,19 +49,19 @@ func keyTap() {
 
 	// hide window
 	err := robotgo.KeyTap("h", "cmd")
-	if err != "" {
+	if err != nil {
 		fmt.Println("robotgo.KeyTap run error is: ", err)
 	}
 
-	robotgo.KeyTap("h", "cmd", 12)
+	robotgo.KeyTap("h", "cmd")
 
 	// press "i", "alt", "command" Key combination
-	robotgo.KeyTap("i", "alt", "command")
-	robotgo.KeyTap("i", "alt", "cmd", 11)
+	robotgo.KeyTap(robotgo.KeyI, robotgo.Alt, robotgo.Cmd)
+	robotgo.KeyTap("i", "alt", "cmd")
 
 	arr := []string{"alt", "cmd"}
 	robotgo.KeyTap("i", arr)
-	robotgo.KeyTap("i", arr, 12)
+	robotgo.KeyTap("i", arr)
 
 	robotgo.KeyTap("i", "cmd", " alt", "shift")
 
@@ -71,9 +75,17 @@ func keyTap() {
 	robotgo.KeyTap("a", "control")
 }
 
+func special() {
+	robotgo.Type("{}")
+	robotgo.KeyTap("[", "]")
+
+	robotgo.KeyToggle("(")
+	robotgo.KeyToggle("(", "up")
+}
+
 func keyToggle() {
 	// robotgo.KeySleep = 150
-	robotgo.KeyToggle("a", "down")
+	robotgo.KeyToggle(robotgo.KeyA)
 	robotgo.KeyToggle("a", "down", "alt")
 	robotgo.Sleep(1)
 
@@ -81,8 +93,8 @@ func keyToggle() {
 	robotgo.MilliSleep(100)
 	robotgo.KeyToggle("q", "up", "alt", "cmd", "shift")
 
-	err := robotgo.KeyToggle("enter", "down")
-	if err != "" {
+	err := robotgo.KeyToggle(robotgo.Enter)
+	if err != nil {
 		fmt.Println("robotgo.KeyToggle run error is: ", err)
 	}
 }
@@ -110,6 +122,7 @@ func key() {
 	////////////////////////////////////////////////////////////////////////////////
 
 	typeStr()
+	special()
 
 	keyTap()
 	keyToggle()

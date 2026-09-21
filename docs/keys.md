@@ -1,3 +1,25 @@
+## Type Conversion
+
+|     | type conversion                   | func                    |
+| --- | --------------------------------- | ----------------------- |
+| \*  | robotgo.Bitmap -> robotgo.CBitmap | robotgo.ToCBitmap()     |
+|     | robotgo.Bitmap -> \*image.RGBA    | robotgo.ToRGBAGo()      |
+| \*  | robotgo.CBitmap -> C.MMBitmapRef  | robotgo.ToMMBitmapRef() |
+|     | robotgo.CBitmap -> robotgo.Bitmap | robotgo.ToBitmap()      |
+|     | robotgo.CBitmap -> image.Image    | robotgo.ToImage()       |
+|     | robotgo.CBitmap -> \*image.RGBA   | robotgo.ToRGBA()        |
+| \*  | C.MMBitmapRef -> robotgo.CBitmap  | robotgo.CBitmap()       |
+| \*  | image.Image -> robotgo.Bitmap     | robotgo.ImgToBitmap()   |
+|     | image.Image -> robotgo.CBitmap    | robotgo.ImgToCBitmap()  |
+|     | image.Image -> []byte             | robotgo.ToByteImg()     |
+|     | image.Image -> string             | robotgo.ToStringImg()   |
+| \*  | \*image.RGBA -> robotgo.Bitmap    | robotgo.RGBAToBitmap()  |
+| \*  | []byte -> image.Image             | robotgo.ByteToImg()     |
+|     | []byte-> robotgo.CBitmap          | robotgo.ByteToCBitmap() |
+|     | []byte -> string                  | string()                |
+| \*  | string -> image.Image             | robotgo.StrToImg()      |
+|     | string -> byte                    | []byte()                |
+
 # Keys
 
 ```Go
@@ -44,19 +66,19 @@
 	"f24"
 
 	"cmd"		is the "win" key for windows
-	"lcmd"		left command
-	"rcmd"		right command
+	"cmdl"		left command
+	"cmdr"		right command
 	// "command"
 	"alt"
-	"lalt"		left alt
-	"ralt"		right alt
+	"altl"		left alt
+	"altr"		right alt
 	"ctrl"
-	"lctrl"		left ctrl
-	"rctrl"		right ctrl
+	"ctrll"		left ctrl
+	"ctrlr"		right ctrl
 	"control"
 	"shift"
-	"lshift"	left shift
-	"rshift"	right shift
+	"shiftl"	left shift
+	"shiftr"	right shift
 	// "right_shift"
 	"capslock"
 	"space"
@@ -78,7 +100,6 @@
 	"audio_repeat"      Linux only
 	"audio_random"      Linux only
 
-
 	"num0"
 	"num1"
 	"num2"
@@ -90,6 +111,9 @@
 	"num8"
 	"num9"
 	"num_lock"
+
+	"scroll_lock"
+	"pause_break"
 
 	"num."
 	"num+"
